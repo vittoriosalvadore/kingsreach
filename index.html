@@ -674,6 +674,12 @@ const TEX = (function(){
       for(let gx=0;gx<5;gx++){ const xx=gx*s/5+((gy%2)?s/10:0); x.beginPath(); x.moveTo(xx,yy); x.lineTo(xx,yy+s/5); x.stroke(); } }
     x.globalAlpha=.5; for(let i=0;i<1800;i++){ x.fillStyle=Math.random()<.5?'rgba(40,40,40,.4)':'rgba(190,190,190,.3)'; x.beginPath(); x.arc(Math.random()*s,Math.random()*s,Math.random()*1.5,0,7); x.fill(); }
   })(stone.getContext('2d'));
+  // human skin (warm, soft pores + cheek mottle, no scars — for living villagers)
+  const skinH=_cv(256); (function(x){ const s=256; x.fillStyle='#c8c8c8'; x.fillRect(0,0,s,s);
+    for(let i=0;i<44;i++){ const px=Math.random()*s,py=Math.random()*s,r=18+Math.random()*64; const g=x.createRadialGradient(px,py,0,px,py,r);
+      g.addColorStop(0,Math.random()<.5?'rgba(214,176,158,.18)':'rgba(150,118,104,.16)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill(); }
+    for(let i=0;i<4200;i++){ x.fillStyle=Math.random()<.5?'rgba(120,96,84,.15)':'rgba(224,206,194,.13)'; x.beginPath(); x.arc(Math.random()*s,Math.random()*s,Math.random()*1.3,0,7); x.fill(); }
+  })(skinH.getContext('2d'));
   // brushed metal
   const metal=_cv(128); (function(x){ const s=128; const g=x.createLinearGradient(0,0,0,s); g.addColorStop(0,'#bcbcbc'); g.addColorStop(.5,'#8e8e8e'); g.addColorStop(1,'#a6a6a6'); x.fillStyle=g; x.fillRect(0,0,s,s);
     x.globalAlpha=.25; for(let i=0;i<260;i++){ x.strokeStyle=Math.random()<.5?'#d6d6d6':'#6a6a6a'; x.lineWidth=Math.random()<.8?.6:1.2; const yy=Math.random()*s; x.beginPath(); x.moveTo(0,yy); x.lineTo(s,yy+(Math.random()-.5)*2); x.stroke(); }
@@ -724,7 +730,7 @@ const TEX = (function(){
     grunge:_mkTex(grunge,1,1), cloth:_mkTex(cloth,3,3), scale:_mkTex(scale,2,2), bark:_mkTex(bark,1,3),
     stone:_mkTex(stone,2,2), metal:_mkTex(metal,2,2), char:_mkTex(char,1,1), ember:_mkTex(ember,1,1),
     wisp:_mkTex(wisp,1,2), wood:_mkTex(wood,2,2), glow:glowTex, mist:_mkTex(mist,1,1),
-    skin:_mkTex(skin,1,1), hair:_mkTex(hair,1,2),
+    skin:_mkTex(skin,1,1), hair:_mkTex(hair,1,2), skinH:_mkTex(skinH,1,1),
   };
 })();
 
@@ -974,12 +980,45 @@ const townFlames=[];
   const plaza=new THREE.Mesh(new THREE.CircleGeometry(7,20),mat(0x33291a,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.03}));plaza.rotation.x=-Math.PI/2;plaza.position.set(0,.03,-9);townGroup.add(plaza);
 })();
 const NPC_FIG=[];
-function buildNpcFig(color,x){
+const NPC_LOOK = {
+  smith:  {skin:0xc2895a, hair:0x2a1a0e, beard:true,  build:1.18},
+  jewel:  {skin:0xd8b48c, hair:0x3a2236, beard:false, build:0.95},
+  alch:   {skin:0xcaa882, hair:0xc9c2b4, beard:false, build:0.96},
+  inn:    {skin:0xc89a6a, hair:0x4a2a14, beard:true,  build:1.12},
+  herald: {skin:0xb89a7a, hair:0xd2ccc0, beard:true,  build:1.0, long:true},
+  arms:   {skin:0xb88a5e, hair:0x1a120a, beard:true,  build:1.06},
+};
+function buildNpcFig(npc){
   const g=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.32,.9,4,7),mat(color,{r:.9,e:color,ei:.22,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012}));body.position.y=1.0;g.add(body);
-  const cloak=new THREE.Mesh(new THREE.ConeGeometry(.5,1.3,8),mat(color,{r:.95,e:color,ei:.12,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012}));cloak.position.y=.72;g.add(cloak);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.22,9,7),mat(0xc9a87a,{r:.7,e:0x3a2a1a,ei:.4,map:TEX.grunge}));head.position.y=1.62;g.add(head);
-  g.position.set(x*0.42,0,-6); return g;
+  const L = NPC_LOOK[npc.id] || {skin:0xc8a07a, hair:0x2a1a0e, beard:false, build:1};
+  const bw=L.build||1;
+  const cloth = mat(npc.color,{r:.92,map:TEX.cloth,bump:TEX.cloth,bumpScale:.015,e:npc.color,ei:.05});
+  const skinM = mat(L.skin,{r:.7,map:TEX.skinH,bump:TEX.skinH,bumpScale:.01});
+  const hairM = mat(L.hair,{r:.9,map:TEX.hair,bump:TEX.hair,bumpScale:.008});
+  const dark  = mat(0x120d08,{r:.5,m:.1});
+  // robe + torso + shoulders
+  const cloak=new THREE.Mesh(new THREE.ConeGeometry(.5*bw,1.32,14),cloth);cloak.position.y=.72;g.add(cloak);
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.3*bw,.66,5,12),cloth);body.position.y=1.04;g.add(body);
+  for(const sx of [-1,1]){ const sh=new THREE.Mesh(new THREE.SphereGeometry(.15*bw,10,8),cloth);sh.position.set(sx*.3*bw,1.38,0);g.add(sh); }
+  // neck + skinned head
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,.12,10),skinM);neck.position.y=1.52;g.add(neck);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.21,22,18),skinM);head.position.y=1.68;head.scale.set(.94,1.07,.96);g.add(head);
+  // brow, nose
+  const brow=new THREE.Mesh(new THREE.BoxGeometry(.24,.04,.06),skinM);brow.position.set(0,1.76,.15);g.add(brow);
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(.034,.1,7),skinM);nose.rotation.x=Math.PI*.52;nose.position.set(0,1.68,.2);g.add(nose);
+  // eyes (dark, alive — no glow) + brows
+  for(const sx of [-1,1]){ const e=new THREE.Mesh(new THREE.SphereGeometry(.028,8,6),dark);e.position.set(sx*.08,1.72,.175);g.add(e);
+    const eb=new THREE.Mesh(new THREE.BoxGeometry(.08,.02,.03),hairM);eb.position.set(sx*.08,1.78,.18);g.add(eb); }
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(.07,.014,.02),mat(0x7a4438,{r:.6}));mouth.position.set(0,1.62,.185);g.add(mouth);
+  // hair cap (crown + back, clear of the face)
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(.215,16,12),hairM);hair.position.set(0,1.74,-.1);hair.scale.set(1.05,.95,1.04);g.add(hair);
+  // facial hair
+  if(L.beard){ const n=L.long?16:10; for(let i=0;i<n;i++){ const bl=L.long?rand(.12,.28):rand(.06,.15);
+    const st=new THREE.Mesh(new THREE.ConeGeometry(.022,bl,5),hairM); st.position.set(rand(-.1,.1),1.58-rand(0,.1),.1+rand(-.03,.05));
+    st.rotation.set(Math.PI+rand(-.2,.2),0,rand(-.25,.25)); g.add(st); } }
+  // hands
+  for(const sx of [-1,1]){ const hand=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skinM);hand.position.set(sx*.33*bw,.84,.06);g.add(hand); }
+  g.position.set(npc.x*0.42,0,-6); return g;
 }
 
 // ============================================================ ENEMY ROSTER
@@ -1828,7 +1867,7 @@ const NPCS=[
 function buildNpcRow(){
   for(const f of NPC_FIG) townGroup.remove(f);
   NPC_FIG.length=0;
-  for(const npc of NPCS){ const fig=buildNpcFig(npc.color,npc.x); townGroup.add(fig); NPC_FIG.push(fig); }
+  for(const npc of NPCS){ const fig=buildNpcFig(npc); townGroup.add(fig); NPC_FIG.push(fig); }
 }
 buildNpcRow();
 
