@@ -542,7 +542,7 @@ const accentLight = new THREE.PointLight(BIOMES[0].accent, 6, 22, 2.2); scene.ad
 const enemyKey = new THREE.PointLight(0xffe8cc, 0, 18, 2); scene.add(enemyKey);
 const enemyRim = new THREE.PointLight(0xbfd4ff, 0, 16, 2); scene.add(enemyRim);
 const townLight = new THREE.PointLight(0xffc070, 0, 50, 1.6); townLight.position.set(0,4,-9); scene.add(townLight);
-const townFill = new THREE.PointLight(0xbfd4ff, 0, 40, 1.8); townFill.position.set(0,5,3); scene.add(townFill);
+const townFill = new THREE.PointLight(0xffe2b4, 0, 40, 1.6); townFill.position.set(0,5,3); scene.add(townFill);
 weaponScene.add(new THREE.HemisphereLight(0xbfcfff,0x20140a,1.1));
 const wkey = new THREE.DirectionalLight(0xffe6c0,1.4); wkey.position.set(-1,2,2); weaponScene.add(wkey);
 
@@ -992,9 +992,9 @@ function buildNpcFig(npc){
   const g=new THREE.Group();
   const L = NPC_LOOK[npc.id] || {skin:0xc8a07a, hair:0x2a1a0e, beard:false, build:1};
   const bw=L.build||1;
-  const cloth = mat(npc.color,{r:.92,map:TEX.cloth,bump:TEX.cloth,bumpScale:.015,e:npc.color,ei:.05});
-  const skinM = mat(L.skin,{r:.7,map:TEX.skinH,bump:TEX.skinH,bumpScale:.01});
-  const hairM = mat(L.hair,{r:.9,map:TEX.hair,bump:TEX.hair,bumpScale:.008});
+  const cloth = mat(npc.color,{r:.92,map:TEX.cloth,bump:TEX.cloth,bumpScale:.015,e:npc.color,ei:.18});
+  const skinM = mat(L.skin,{r:.7,map:TEX.skinH,bump:TEX.skinH,bumpScale:.01,e:L.skin,ei:.34});
+  const hairM = mat(L.hair,{r:.9,map:TEX.hair,bump:TEX.hair,bumpScale:.008,e:L.hair,ei:.2});
   const dark  = mat(0x120d08,{r:.5,m:.1});
   // robe + torso + shoulders
   const cloak=new THREE.Mesh(new THREE.ConeGeometry(.5*bw,1.32,14),cloth);cloak.position.y=.72;g.add(cloak);
@@ -1018,7 +1018,7 @@ function buildNpcFig(npc){
     st.rotation.set(Math.PI+rand(-.2,.2),0,rand(-.25,.25)); g.add(st); } }
   // hands
   for(const sx of [-1,1]){ const hand=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skinM);hand.position.set(sx*.33*bw,.84,.06);g.add(hand); }
-  g.position.set(npc.x*0.42,0,-6); return g;
+  g.position.set(npc.x*0.42,0,-5.2); g.scale.setScalar(1.22); return g;
 }
 
 // ============================================================ ENEMY ROSTER
@@ -1852,17 +1852,17 @@ function openTreasure(){
 
 // ============================================================ TOWN HUB
 const NPCS=[
-  {id:'smith', name:'Borin', role:'Blacksmith', icon:'🛡️', color:0x6a4a2a, x:-4.2, shop:'armor',
+  {id:'smith', name:'Borin', role:'Blacksmith', icon:'🛡️', color:0x6a4a2a, x:-5, shop:'armor',
    lines:['Steel for the road ahead? Aye, I keep the good stuff.','The deeper lands chew through soft mail. Plate up.','Every dent on this anvil is somebody who didn’t.']},
-  {id:'jewel', name:'Ysolde', role:'Jeweler', icon:'💍', color:0x5a2e5a, x:-2.1, shop:'trinket',
+  {id:'jewel', name:'Ysolde', role:'Jeweler', icon:'💍', color:0x5a2e5a, x:-3, shop:'trinket',
    lines:['Trinkets with old magic still humming in them.','A ring here turned a coward into a king. Or so they say.','Magic’s cheaper than dying, traveler.']},
-  {id:'alch', name:'Old Maeve', role:'Alchemist', icon:'⚗️', color:0x2e5a3a, x:0, shop:'potion',
+  {id:'alch', name:'Old Maeve', role:'Alchemist', icon:'⚗️', color:0x2e5a3a, x:-1, shop:'potion',
    lines:['Potions! Carry a few before the dark.','Drink mid-fight, not after. After is for corpses.','My greater elixir’s saved more fools than prayer.']},
   {id:'arms', name:'Garrick', role:'Arms Dealer', icon:'⚔️', color:0x5a4632, x:1.0, shop:'weapon',
    lines:['Blades, hafts, and a few that hum with worse than steel.','Try the grimoire if you’ve the stomach for spellcraft.','Pick your poison. They all kill, just differently.']},
-  {id:'inn', name:'Hale', role:'Innkeeper', icon:'🍺', color:0x6a4a1a, x:2.6, rest:true,
+  {id:'inn', name:'Hale', role:'Innkeeper', icon:'🍺', color:0x6a4a1a, x:3, rest:true,
    lines:['Rest your bones by the fire, friend.','You look half-dead. Sit. The road can wait.','First night’s on the house.']},
-  {id:'herald', name:'The Grey Herald', role:'Watcher', icon:'📜', color:0x3a3a4a, x:4.4, lore:true, lines:[]},
+  {id:'herald', name:'The Grey Herald', role:'Watcher', icon:'📜', color:0x3a3a4a, x:5, lore:true, lines:[]},
 ];
 function buildNpcRow(){
   for(const f of NPC_FIG) townGroup.remove(f);
@@ -2140,7 +2140,7 @@ function update(dt){
     const sway=Math.sin(G.townT*0.4)*0.5;
     camera.position.set(sway,1.9,G.z+3.2); camera.lookAt(sway*0.3,1.3,G.z-8);
     townLight.position.set(0,4,G.z-7); townFill.position.set(0,5,G.z+3);
-    townLight.intensity=lerp(townLight.intensity,16,dt*3); townFill.intensity=lerp(townFill.intensity,2.4,dt*3);
+    townLight.intensity=lerp(townLight.intensity,16,dt*3); townFill.intensity=lerp(townFill.intensity,6.5,dt*3);
     hemi.intensity=lerp(hemi.intensity,1.7,dt*3);
   } else {
     camera.position.set(camX,1.62+Math.sin(G.bob)*0.05,G.z);
