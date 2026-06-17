@@ -431,7 +431,7 @@ const toRoman = n=>ROMAN[n]||('#'+n);
 const QPRESETS = {
   low:    { key:'low',    label:'Low',    pixel:1.0, aa:false, motes:0,  props:0.5,  fx:0.0, slash:false, shock:true, fog:0.008, dist:110, bloom:false },
   medium: { key:'medium', label:'Medium', pixel:1.5, aa:true,  motes:45, props:0.85, fx:0.6, slash:true,  shock:true, fog:0.005, dist:150, bloom:false },
-  high:   { key:'high',   label:'High',   pixel:2.0, aa:true,  motes:90, props:1.0,  fx:1.0, slash:true,  shock:true, fog:0.003, dist:190, bloom:true  },
+  high:   { key:'high',   label:'High',   pixel:2.0, aa:true,  motes:90, props:1.0,  fx:1.0, slash:true,  shock:true, fog:0.003, dist:190, bloom:false },
 };
 const QDEFAULT = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'medium' : 'high';
 let QKEY = QDEFAULT;
