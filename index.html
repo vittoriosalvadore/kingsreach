@@ -891,7 +891,7 @@ wGeo.setAttribute('position',new THREE.BufferAttribute(wPos,3).setUsage(THREE.Dy
 const wMat = new THREE.PointsMaterial({color:0xc2b8a4,size:.13,map:TEX.glow,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,fog:true});
 const weather = new THREE.Points(wGeo,wMat); weather.frustumCulled=false; scene.add(weather);
 function updateWeather(dt){ if(!weather.visible) return; const drift=Math.sin(performance.now()*.0004)*0.5;
-  for(let i=0;i<WEATHER_N;i++){ let y=wPos[i*3+1]-wVel[i]*dt*1.7; let x=wPos[i*3]+drift*dt+Math.sin(y*.6+i)*dt*0.3;
+  for(let i=0;i<WEATHER_N;i++){ let y=wPos[i*3+1]-wVel[i]*dt*1.7*weatherFall; let x=wPos[i*3]+drift*dt+Math.sin(y*.6+i)*dt*0.3;
     if(y<0){ y=16; x=rand(-22,22); wPos[i*3+2]=rand(-34,8); } wPos[i*3]=x; wPos[i*3+1]=y; }
   wGeo.attributes.position.needsUpdate=true; weather.position.set(G.x,0,G.z);
 }
@@ -963,12 +963,29 @@ function applyBright(key){
 const townGroup = new THREE.Group(); townGroup.visible=false; scene.add(townGroup);
 const townFlames=[];
 const townCrowd=[];
+const snowCaps=[];
+// time of day (cycles each town visit) and season (by act)
+const TOD = [
+  {name:'Dawn',   sky:[0x46506e,0xc88a5a,0x4a3a4a], amb:1.05, sun:0xffcf9a, sunI:0.55, lant:1.2,  fog:0x4a4250},
+  {name:'Midday', sky:[0x5a86c0,0xacc2d2,0x76869a], amb:1.55, sun:0xffffe6, sunI:0.95, lant:0.7,  fog:0x9aaab6},
+  {name:'Dusk',   sky:[0x3a2c50,0xc06a38,0x2e2438], amb:1.0,  sun:0xff844a, sunI:0.5,  lant:1.35, fog:0x4e3c40},
+  {name:'Night',  sky:[0x0a1020,0x1c2740,0x0a0e18], amb:0.5,  sun:0x7a8ab0, sunI:0.22, lant:1.7,  fog:0x10141f},
+];
+const SEASON = [
+  {name:'Spring', wcol:0xffc6dc, fall:0.7,  snow:false},
+  {name:'Summer', wcol:0xffe2a8, fall:0.35, snow:false},
+  {name:'Autumn', wcol:0xd87a2e, fall:1.0,  snow:false},
+  {name:'Winter', wcol:0xeaf2ff, fall:0.9,  snow:true},
+];
+let todIndex=0, lantMul=1, weatherFall=1;
+const seasonIdx = () => (G.act-1)%SEASON.length;
 function townWindow(px,py,pz){ const m=mat(0x110a04,{e:0xffc266,ei:2.4}); m.depthWrite=false; m.polygonOffset=true; m.polygonOffsetFactor=-2; m.polygonOffsetUnits=-2;
   const w=new THREE.Mesh(new THREE.PlaneGeometry(.46,.56),m); w.position.set(px,py,pz); w.renderOrder=2; townGroup.add(w); townFlames.push(w); }
 function townHouse(x,z,w,h){
   const col=pick([0x44341f,0x4e3c26,0x3a2c1c,0x504028,0x3e3326]); const d=w*0.9;
   const bld=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(col,{r:1,map:TEX.wood,bump:TEX.wood,bumpScale:.02}));bld.position.set(x,h/2,z);townGroup.add(bld);
   const roof=new THREE.Mesh(new THREE.ConeGeometry(w*0.82,1.4,4),mat(0x281c10,{r:1,map:TEX.wood}));roof.rotation.y=.785;roof.position.set(x,h+0.68,z);townGroup.add(roof);
+  const cap=new THREE.Mesh(new THREE.ConeGeometry(w*0.84,1.46,4),mat(0xeef4ff,{r:.85,e:0x8aa0c0,ei:.1}));cap.rotation.y=.785;cap.position.set(x,h+0.74,z);cap.visible=false;snowCaps.push(cap);townGroup.add(cap);
   const ch=new THREE.Mesh(new THREE.BoxGeometry(.28,.7,.28),mat(0x2a2218,{r:1,map:TEX.stone}));ch.position.set(x+w*0.26,h+1.0,z);townGroup.add(ch);
   const em=new THREE.Mesh(new THREE.SphereGeometry(.09,8,6),mat(0x3a1500,{e:0xff7a30,ei:1.4}));em.position.set(x+w*0.26,h+1.42,z);townGroup.add(em);townFlames.push(em);
   for(let s=0;s<3;s++){ const pf=new THREE.Mesh(new THREE.SphereGeometry(.16+s*.07,8,6),new THREE.MeshBasicMaterial({color:0x5a5450,transparent:true,opacity:.1,depthWrite:false}));pf.position.set(x+w*0.26+rand(-.12,.12),h+1.75+s*.45,z-s*.12);townGroup.add(pf); }
@@ -978,7 +995,7 @@ function townCrowdFig(x,z){ const c=new THREE.Group(); const col=pick([0x4a4038,
   const cloak=new THREE.Mesh(new THREE.ConeGeometry(.32,.95,9),mat(col,{r:.95,e:col,ei:.1,map:TEX.cloth}));cloak.position.y=.52;c.add(cloak);
   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.2,.55,4,8),mat(col,{r:.9,e:col,ei:.12,map:TEX.cloth}));body.position.y=.8;c.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.15,12,9),mat(pick([0xb89a7a,0xc9a87a,0xa88a64]),{r:.7,e:0x2a1f14,ei:.3,map:TEX.skinH}));head.position.y=1.18;c.add(head);
-  c.userData={ph:rand(0,6.28),baseRot:rand(-.6,.6)}; c.rotation.y=c.userData.baseRot; c.position.set(x,0,z); townGroup.add(c); townCrowd.push(c);
+  c.userData={tx:rand(-4,4),tz:rand(-9,-23),spd:rand(.5,1.0),wt:rand(0,6),pause:rand(0,3)}; c.rotation.y=rand(-.6,.6); c.position.set(x,0,z); townGroup.add(c); townCrowd.push(c);
 }
 (function buildTownVillage(){
   const road=new THREE.Mesh(new THREE.PlaneGeometry(6.5,26),mat(0x33291a,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.03}));road.rotation.x=-Math.PI/2;road.position.set(0,.03,-12);townGroup.add(road);
@@ -1903,7 +1920,10 @@ function enterTown(){
   townGroup.position.set(0,0,G.z); townGroup.visible=true;
   townLight.position.set(0,4,G.z-11);
   hideAllOverlays();
-  $('townSub').textContent = 'Waystation · '+curBiome().name;
+  todIndex=(todIndex+1)%TOD.length;
+  const sea=SEASON[seasonIdx()];
+  for(const c of snowCaps) c.visible=sea.snow;
+  $('townSub').textContent = 'Waystation · '+curBiome().name+' · '+sea.name+' '+TOD[todIndex].name;
   $('townGold').textContent = G.gold;
   const row=$('npcRow'); row.innerHTML='';
   NPCS.forEach(npc=>{ const el=document.createElement('button'); el.className='npcbtn';
@@ -2159,16 +2179,22 @@ function update(dt){
   const scroll=G.depth*0.07; gTex.offset.y=scroll; pTex.offset.y=scroll;
 
   const b=curBiome();
-  curFog.lerp(new THREE.Color(b.fog),dt*1.5); scene.fog.color.copy(curFog); renderer.setClearColor(curFog,1);
-  skyUniforms.top.value.lerp(new THREE.Color(b.sky[0]),dt*1.5);
-  skyUniforms.horizon.value.lerp(new THREE.Color(b.sky[1]),dt*1.5);
-  skyUniforms.bottom.value.lerp(new THREE.Color(b.sky[2]),dt*1.5);
-  const starTgt = b.prop==='dungeon'?0.15:(b.prop==='castle'?1.0:0.8);
+  const inTown=(G.state==='town'); const tod=TOD[todIndex];
+  // in town, time-of-day drives sky/sun/fog; on the road, the biome does
+  const fogT = inTown?tod.fog:b.fog, skyT = inTown?tod.sky:b.sky, sunC = inTown?tod.sun:b.sun, sunI = inTown?tod.sunI:b.sunInt;
+  const starTgt = inTown ? (tod.name==='Night'?1.0:tod.name==='Dusk'?0.4:0.0) : (b.prop==='dungeon'?0.15:(b.prop==='castle'?1.0:0.8));
+  lantMul = inTown ? tod.lant : 1;
+  curFog.lerp(new THREE.Color(fogT),dt*1.5); scene.fog.color.copy(curFog); renderer.setClearColor(curFog,1);
+  skyUniforms.top.value.lerp(new THREE.Color(skyT[0]),dt*1.5);
+  skyUniforms.horizon.value.lerp(new THREE.Color(skyT[1]),dt*1.5);
+  skyUniforms.bottom.value.lerp(new THREE.Color(skyT[2]),dt*1.5);
   skyUniforms.starInt.value += (starTgt-skyUniforms.starInt.value)*dt*1.5; skyUniforms.uTime.value += dt;
-  hemi.color.lerp(new THREE.Color(b.hemiSky),dt*1.5); hemi.groundColor.lerp(new THREE.Color(b.hemiGround),dt*1.5);
-  sun.color.lerp(new THREE.Color(b.sun),dt*1.5); sun.intensity=lerp(sun.intensity,b.sunInt,dt*1.5);
+  hemi.color.lerp(new THREE.Color(inTown?(tod.amb>1.2?0xbcd0e2:0x5a5870):b.hemiSky),dt*1.5); hemi.groundColor.lerp(new THREE.Color(b.hemiGround),dt*1.5);
+  sun.color.lerp(new THREE.Color(sunC),dt*1.5); sun.intensity=lerp(sun.intensity,sunI,dt*1.5);
   moteMat.color.lerp(new THREE.Color(b.accent),dt*1.5); accentLight.color.lerp(new THREE.Color(b.accent),dt*2);
   mistMat.color.lerp(new THREE.Color(b.hemiSky),dt*1.5);
+  // seasonal weather tint + fall speed
+  const sea=SEASON[seasonIdx()]; wMat.color.lerp(new THREE.Color(sea.wcol),dt*1.2); weatherFall=sea.fall;
   updateWeather(dt); updateMist(dt); updateTelegraph();
   if(G.state==='travel'){ stepT-=dt; if(stepT<=0){ stepT=0.34; burst(G.x+rand(-.45,.45),0.05,G.z-0.5,{color:0x6a6052,n:3,spd:1.3,life:.55,grav:6,up:true}); } }
 
@@ -2180,10 +2206,10 @@ function update(dt){
     camera.position.set(camX,camY,G.z); camera.lookAt(camX, camY-3.4, G.z-13);
   } else if(G.state==='town'){
     const sway=Math.sin(G.townT*0.4)*0.5;
-    camera.position.set(sway,1.9,G.z+3.2); camera.lookAt(sway*0.3,1.3,G.z-8);
-    townLight.position.set(0,4,G.z-7); townFill.position.set(0,5,G.z+3);
-    townLight.intensity=lerp(townLight.intensity,16,dt*3); townFill.intensity=lerp(townFill.intensity,6.5,dt*3);
-    hemi.intensity=lerp(hemi.intensity,1.7,dt*3);
+    camera.position.set(sway,2.15,G.z+3.4); camera.lookAt(sway*0.3,1.2,G.z-11);
+    townLight.position.set(0,4,G.z-9); townFill.position.set(0,5,G.z+3);
+    townLight.intensity=lerp(townLight.intensity,12+tod.lant*3,dt*3); townFill.intensity=lerp(townFill.intensity,6.5,dt*3);
+    hemi.intensity=lerp(hemi.intensity,1.7*tod.amb,dt*3);
   } else {
     camera.position.set(camX,1.62+Math.sin(G.bob)*0.05,G.z);
     camera.lookAt(camX*0.3,1.45-G.camKick*0.5,G.z-6); camera.position.y+=G.camKick*0.12;
@@ -2199,8 +2225,12 @@ function update(dt){
     slashMat.opacity=s*0.85; slashArc.rotation.z=-1.25+G.swingT*2.6; const sc=0.85+G.swingT*0.7; slashArc.scale.set(sc,sc,1);
   } else slashMat.opacity=0;
 
-  if(G.state==='town'){ for(const f of townFlames){ f.material.emissiveIntensity = 1.7+Math.sin(now*.005+f.position.x)*.28; }
-    for(const c of townCrowd){ c.position.y=Math.sin(now*.002+c.userData.ph)*.045; c.rotation.y=c.userData.baseRot+Math.sin(now*.0013+c.userData.ph)*.18; } }
+  if(G.state==='town'){ for(const f of townFlames){ f.material.emissiveIntensity = (1.7+Math.sin(now*.005+f.position.x)*.28)*lantMul; }
+    for(const c of townCrowd){ const u=c.userData;
+      if(u.pause>0){ u.pause-=dt; c.position.y=Math.sin(now*.002+u.wt)*0.03; }
+      else { let dx=u.tx-c.position.x, dz=u.tz-c.position.z; const d=Math.hypot(dx,dz);
+        if(d<0.35){ u.tx=rand(-4,4); u.tz=rand(-9,-23); u.pause=rand(0.5,3.5); }
+        else { const v=Math.min(d,u.spd*dt); c.position.x+=dx/d*v; c.position.z+=dz/d*v; c.rotation.y=Math.atan2(dx,dz); u.wt+=dt*9; c.position.y=Math.abs(Math.sin(u.wt))*0.06; } } } }
 
   for(let i=PROP_POOL.length-1;i>=0;i--){ const p=PROP_POOL[i];
     if(p.grp.position.z > G.z+14){ disposeProp(p); PROP_POOL.splice(i,1); continue; }
