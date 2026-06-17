@@ -1,0 +1,9 @@
+# stale dev snapshot — not the live game
+__check.mjs
+# temp syntax-check artifacts
+__sc.js
+__synckcheck.js
+# logs / os cruft
+*.log
+.DS_Store
+node_modules/
