@@ -151,6 +151,7 @@
   .ev-cost{color:#d07f7f;font-weight:bold;}
 
   #townOv{justify-content:flex-end;padding-bottom:26px;background:linear-gradient(rgba(0,0,0,0) 40%,rgba(4,3,8,.82) 78%);backdrop-filter:none;-webkit-backdrop-filter:none;}
+  #catalogOv{justify-content:flex-end;padding-bottom:22px;gap:8px;background:linear-gradient(rgba(0,0,0,0) 30%,rgba(4,3,8,.88) 66%);backdrop-filter:none;-webkit-backdrop-filter:none;}
   #townHead{position:absolute;top:60px;left:0;right:0;text-align:center;}
   #townName{font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 2px 12px rgba(217,185,106,.4),0 2px 5px #000;}
   #townSub{font-size:11px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;margin-top:3px;}
@@ -996,7 +997,7 @@ function townCrowdFig(x,z){ const c=new THREE.Group(); const col=pick([0x6a5444,
   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.24,.66,4,9),mat(col,{r:.9,e:col,ei:.24,map:TEX.cloth}));body.position.y=.98;c.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.18,14,11),mat(pick([0xc8a87a,0xd8b48c,0xb89a6a]),{r:.7,e:0x4a3422,ei:.45,map:TEX.skinH}));head.position.y=1.46;c.add(head);
   const hair=new THREE.Mesh(new THREE.SphereGeometry(.185,12,9),mat(pick([0x2a1a0e,0x4a3020,0x6a5a4a]),{r:.9,e:0x1a120a,ei:.2}));hair.position.set(0,1.5,-.06);hair.scale.set(1,.85,1);c.add(hair);
-  c.userData={tx:rand(-4.2,4.2),tz:rand(-8,-23),spd:rand(.9,1.6),wt:rand(0,6),pause:rand(0,1.2)}; c.rotation.y=rand(-.6,.6); c.position.set(x,0,z); townGroup.add(c); townCrowd.push(c);
+  c.userData={tx:rand(-4.5,4.5),tz:rand(-6,-24),spd:rand(.9,1.6),wt:rand(0,6),pause:rand(0,1.2)}; c.rotation.y=rand(-.6,.6); c.position.set(x,0,z); townGroup.add(c); townCrowd.push(c);
 }
 (function buildTownVillage(){
   const road=new THREE.Mesh(new THREE.PlaneGeometry(6.5,26),mat(0x33291a,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.03}));road.rotation.x=-Math.PI/2;road.position.set(0,.03,-12);townGroup.add(road);
@@ -1011,7 +1012,7 @@ function townCrowdFig(x,z){ const c=new THREE.Group(); const col=pick([0x6a5444,
   const wellBase=new THREE.Mesh(new THREE.CylinderGeometry(.8,.9,1.0,14),mat(0x4a4640,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.04}));wellBase.position.set(0,.5,-19);townGroup.add(wellBase);
   for(const sx of [-1,1]){ const wp=new THREE.Mesh(new THREE.BoxGeometry(.12,1.4,.12),mat(0x2a1c10,{r:1,map:TEX.wood}));wp.position.set(sx*.7,1.2,-19);townGroup.add(wp); }
   const wroof=new THREE.Mesh(new THREE.ConeGeometry(1.0,.7,4),mat(0x281c10,{r:1,map:TEX.wood}));wroof.rotation.y=.785;wroof.position.set(0,2.2,-19);townGroup.add(wroof);
-  for(const [sx,sz] of [[-4.2,-10],[4.0,-11],[-3.6,-15],[3.8,-16],[-1.6,-18],[1.8,-13],[2.2,-21],[-2.4,-23],[-3.0,-9],[3.2,-9],[0.6,-16],[-0.8,-20],[3.4,-22],[-3.8,-19]]) townCrowdFig(sx,sz);
+  for(const [sx,sz] of [[-3,-7],[2.5,-7.5],[-1.2,-9],[1.4,-9],[-4,-11],[3.6,-11],[-2,-13],[2,-13],[0.5,-14],[-3.4,-15],[3.2,-16],[-1.4,-17],[1.6,-18],[-2.6,-19],[2.6,-20],[-0.6,-21],[0.8,-22],[-3.6,-22],[3.4,-23],[-1.8,-24]]) townCrowdFig(sx,sz);
 })();
 const NPC_FIG=[];
 const NPC_LOOK = {
@@ -1064,6 +1065,55 @@ function buildNpcFig(npc){
   // hands
   for(const sx of [-1,1]){ const hand=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),skinM);hand.position.set(sx*.33*bw,.84,.06);g.add(hand); }
   g.position.set(npc.x*0.42,0,-5.2); g.scale.setScalar(1.22); return g;
+}
+
+// ============================================================ 3D shop interiors
+const interiorGroup = new THREE.Group(); interiorGroup.visible=false; scene.add(interiorGroup);
+const interiorLight = new THREE.PointLight(0xffc99a, 0, 30, 2); scene.add(interiorLight);
+let shopAnim=[];
+function clearInterior(){ for(let i=interiorGroup.children.length-1;i>=0;i--){ const o=interiorGroup.children[i];
+  o.traverse(m=>{ if(m.geometry) m.geometry.dispose(); if(m.material){ (Array.isArray(m.material)?m.material:[m.material]).forEach(mm=>mm.dispose&&mm.dispose()); } }); interiorGroup.remove(o); } shopAnim.length=0; }
+function buildInterior(npc){
+  clearInterior();
+  const wmat=mat(0x4a3a26,{r:1,map:TEX.wood,bump:TEX.wood,bumpScale:.02});
+  const smat=mat(0x55504a,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.04});
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,9),mat(0x3a2c1a,{r:1,map:TEX.wood,bump:TEX.wood,bumpScale:.02}));floor.rotation.x=-Math.PI/2;floor.position.set(0,0,-2.5);interiorGroup.add(floor);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(8,4.6,.3),wmat);back.position.set(0,2.3,-6.9);interiorGroup.add(back);
+  for(const sx of [-1,1]){ const sw=new THREE.Mesh(new THREE.BoxGeometry(.3,4.6,9),wmat);sw.position.set(sx*4,2.3,-2.5);interiorGroup.add(sw); }
+  const ceil=new THREE.Mesh(new THREE.BoxGeometry(8.2,.3,9.2),smat);ceil.position.set(0,4.6,-2.5);interiorGroup.add(ceil);
+  for(let i=0;i<3;i++){ const bm=new THREE.Mesh(new THREE.BoxGeometry(8,.22,.22),mat(0x2a1c10,{map:TEX.wood}));bm.position.set(0,4.35,-0.5-i*2.2);interiorGroup.add(bm); }
+  const counter=new THREE.Mesh(new THREE.BoxGeometry(5,1.1,.9),mat(0x33240f,{r:1,map:TEX.wood,bump:TEX.wood,bumpScale:.02}));counter.position.set(0,.55,-1.7);interiorGroup.add(counter);
+  const ctop=new THREE.Mesh(new THREE.BoxGeometry(5.2,.12,1.05),mat(0x4a3420,{r:1,map:TEX.wood}));ctop.position.set(0,1.15,-1.7);interiorGroup.add(ctop);
+  for(const lx of [-2.4,2.4]){ const lant=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),mat(0x3a2206,{e:0xffc257,ei:3}));lant.position.set(lx,3.5,-2.6);interiorGroup.add(lant);shopAnim.push({m:lant,base:2.8,amp:.5,spd:.005}); }
+  const fig=buildNpcFig(npc);fig.position.set(0,0,-3.8);fig.scale.setScalar(1.0);interiorGroup.add(fig);
+  if(npc.shop==='armor'){
+    const forge=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.0,1.0),smat);forge.position.set(-2.7,.6,-4.3);interiorGroup.add(forge);
+    const coals=new THREE.Mesh(new THREE.BoxGeometry(1.0,.3,.7),mat(0x2a0a00,{e:0xff5a1e,ei:2.6}));coals.position.set(-2.7,1.15,-4.3);interiorGroup.add(coals);shopAnim.push({m:coals,base:2.4,amp:1.0,spd:.012});
+    const anvil=new THREE.Mesh(new THREE.BoxGeometry(.8,.35,.4),smat);anvil.position.set(2.5,.62,-4.0);interiorGroup.add(anvil);
+    for(let i=0;i<3;i++){ const sh=new THREE.Mesh(new THREE.CircleGeometry(.34,14),mat(0x6a5326,{m:.6,r:.4,map:TEX.metal}));sh.position.set(-2.6+i*2.6,3.0,-6.7);interiorGroup.add(sh); }
+  } else if(npc.shop==='weapon'){
+    const rack=new THREE.Mesh(new THREE.BoxGeometry(4,.18,.3),mat(0x2a1c10,{map:TEX.wood}));rack.position.set(0,2.7,-6.7);interiorGroup.add(rack);
+    for(let i=0;i<6;i++){ const bl=new THREE.Mesh(new THREE.BoxGeometry(.07,1.5,.04),mat(0xc8ccd6,{m:.8,r:.3,map:TEX.metal}));bl.position.set(-1.7+i*0.68,1.95,-6.6);interiorGroup.add(bl); }
+  } else if(npc.shop==='trinket'){
+    for(let i=0;i<5;i++){ const gm=new THREE.Mesh(new THREE.OctahedronGeometry(.12,0),mat(0x102040,{e:pick([0x6ab0ff,0xff6ab0,0x6cf09a,0xffd86a]),ei:1.6}));gm.position.set(-1.6+i*0.8,1.33,-1.5);interiorGroup.add(gm);shopAnim.push({m:gm,base:1.2,amp:.7,spd:.004+i*.001}); }
+    for(let i=0;i<2;i++){ const sh=new THREE.Mesh(new THREE.BoxGeometry(3,.12,.4),mat(0x3a2818,{map:TEX.wood}));sh.position.set(0,2.2+i*.85,-6.6);interiorGroup.add(sh); }
+  } else if(npc.shop==='potion'){
+    for(let r=0;r<3;r++){ const shelf=new THREE.Mesh(new THREE.BoxGeometry(3.4,.1,.4),mat(0x3a2818,{map:TEX.wood}));shelf.position.set(0,1.5+r*.95,-6.6);interiorGroup.add(shelf);
+      for(let i=0;i<6;i++){ const b=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.3,7),mat(0x101810,{e:pick([0x6cf09a,0x6ab0ff,0xff6a8a,0xffd86a,0xc070ff]),ei:1.1}));b.position.set(-1.4+i*0.56,1.72+r*.95,-6.5);interiorGroup.add(b); } }
+    const cau=new THREE.Mesh(new THREE.CylinderGeometry(.5,.4,.6,12),smat);cau.position.set(-2.5,.5,-4.3);interiorGroup.add(cau);
+    const brew=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.1,12),mat(0x0a2a14,{e:0x6cf09a,ei:1.4}));brew.position.set(-2.5,.82,-4.3);interiorGroup.add(brew);shopAnim.push({m:brew,base:1.2,amp:.7,spd:.006});
+  }
+}
+function enterShop(npc){
+  hide('townOv'); G.shopNpc=npc; townGroup.visible=false;
+  buildInterior(npc); interiorGroup.position.set(0,0.05,G.z); interiorGroup.visible=true;
+  interiorLight.position.set(0,3.4,G.z-3); interiorLight.intensity=0;
+  stopTownMusic(); startShopAmbience(npc.shop);
+  openShopCatalog(npc.shop); G.state='interior';
+}
+function leaveShop(){
+  stopShopAmbience(); interiorGroup.visible=false; clearInterior(); interiorLight.intensity=0;
+  hide('catalogOv'); G.state='town'; townGroup.visible=true; startTownMusic(); $('townGold').textContent=G.gold; show('townOv'); refreshHUD();
 }
 
 // ============================================================ ENEMY ROSTER
@@ -1909,12 +1959,7 @@ const NPCS=[
    lines:['Rest your bones by the fire, friend.','You look half-dead. Sit. The road can wait.','First night’s on the house.']},
   {id:'herald', name:'The Grey Herald', role:'Watcher', icon:'📜', color:0x3a3a4a, x:5, lore:true, lines:[]},
 ];
-function buildNpcRow(){
-  for(const f of NPC_FIG) townGroup.remove(f);
-  NPC_FIG.length=0;
-  for(const npc of NPCS){ const fig=buildNpcFig(npc); townGroup.add(fig); NPC_FIG.push(fig); }
-}
-buildNpcRow();
+function buildNpcRow(){ for(const f of NPC_FIG) townGroup.remove(f); NPC_FIG.length=0; } // shopkeepers now live inside their 3D shops
 
 function enterTown(){
   G.state='town'; G.townT=0; G.firstTown=false;
@@ -1929,7 +1974,7 @@ function enterTown(){
   const row=$('npcRow'); row.innerHTML='';
   NPCS.forEach(npc=>{ const el=document.createElement('button'); el.className='npcbtn';
     el.innerHTML=`<span class="ni">${npc.icon}</span><span class="nn">${npc.name}<br>${npc.role}</span>`;
-    el.addEventListener('pointerdown',e=>{e.preventDefault(); talkNPC(npc);}); row.appendChild(el); });
+    el.addEventListener('pointerdown',e=>{e.preventDefault(); if(npc.shop) enterShop(npc); else talkNPC(npc);}); row.appendChild(el); });
   buildPerfRow($('townPerf')); buildBrightRow($('townBright'));
   $('townSouls').textContent = '⟡ '+META.souls+' souls';
   show('townOv'); audio('townbell'); startTownMusic(); refreshHUD();
@@ -2038,7 +2083,7 @@ function openShopCatalog(type){
   });
   hide('dlgOv'); show('catalogOv');
 }
-bindBtn($('leaveCatalogBtn'), backToTown);
+bindBtn($('leaveCatalogBtn'), leaveShop);
 
 // ============================================================ biome-reveal cutscene
 const REVEAL_DUR=3.4;
@@ -2118,6 +2163,17 @@ function startTownMusic(){ if(musicTimer||!AC) return; musicStep=0;
     musicStep++;
   }, 560); }
 function stopTownMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
+// ---- per-shop ambience (forge, bubbling, chimes, scrapes) ----
+let shopTimer=null;
+function startShopAmbience(type){ stopShopAmbience(); if(!AC) return; let s=0;
+  shopTimer=setInterval(()=>{
+    if(type==='armor'){ if(s%2===0){ tone('square',180,80,0,.12,.16); tone('triangle',900,520,0,.07,.07); } }       // hammer on anvil
+    else if(type==='weapon'){ if(s%3===0) tone('sawtooth',320,140,0,.2,.09); }                                       // whetstone scrape
+    else if(type==='trinket'){ if(s%2===0) tone('triangle',1180+(s%4)*140,1700,0,.4,.05); }                          // soft chimes
+    else if(type==='potion'){ tone('sine',200+Math.random()*340,140,0,.16,.07); }                                    // bubbling
+    s++;
+  }, 820); }
+function stopShopAmbience(){ if(shopTimer){ clearInterval(shopTimer); shopTimer=null; } }
 function audio(kind){ if(!AC)return;
   if(kind==='strike') tone('sawtooth',420,120,0,.18,.16);
   else if(kind==='hit') tone('square',180,70,0,.14,.2);
@@ -2210,6 +2266,10 @@ function update(dt){
     townLight.position.set(0,4,G.z-9); townFill.position.set(0,5,G.z+3);
     townLight.intensity=lerp(townLight.intensity,12+tod.lant*3,dt*3); townFill.intensity=lerp(townFill.intensity,6.5,dt*3);
     hemi.intensity=lerp(hemi.intensity,1.7*tod.amb,dt*3);
+  } else if(G.state==='interior'){
+    camera.position.set(0,1.7,G.z+1.4); camera.lookAt(0,1.4,G.z-3.8);
+    interiorLight.intensity=lerp(interiorLight.intensity,16,dt*4);
+    for(const a of shopAnim){ a.m.material.emissiveIntensity=a.base+Math.sin(now*a.spd)*a.amp; }
   } else {
     camera.position.set(camX,1.62+Math.sin(G.bob)*0.05,G.z);
     camera.lookAt(camX*0.3,1.45-G.camKick*0.5,G.z-6); camera.position.y+=G.camKick*0.12;
@@ -2229,7 +2289,7 @@ function update(dt){
     for(const c of townCrowd){ const u=c.userData;
       if(u.pause>0){ u.pause-=dt; c.position.y=Math.sin(now*.002+u.wt)*0.03; }
       else { let dx=u.tx-c.position.x, dz=u.tz-c.position.z; const d=Math.hypot(dx,dz);
-        if(d<0.35){ u.tx=rand(-4.2,4.2); u.tz=rand(-8,-23); u.pause=rand(0.2,1.6); }
+        if(d<0.35){ u.tx=rand(-4.5,4.5); u.tz=rand(-6,-24); u.pause=rand(0.2,1.6); }
         else { const v=Math.min(d,u.spd*dt); c.position.x+=dx/d*v; c.position.z+=dz/d*v; c.rotation.y=Math.atan2(dx,dz); u.wt+=dt*9; c.position.y=Math.abs(Math.sin(u.wt))*0.06; } } } }
 
   for(let i=PROP_POOL.length-1;i>=0;i--){ const p=PROP_POOL[i];
@@ -2274,7 +2334,7 @@ function render(){
     renderer.clear();
     renderer.render(scene,camera);
   }
-  if(G.state!=='reveal' && G.state!=='town'){ renderer.clearDepth(); renderer.render(weaponScene,weaponCam); }
+  if(G.state!=='reveal' && G.state!=='town' && G.state!=='interior'){ renderer.clearDepth(); renderer.render(weaponScene,weaponCam); }
 }
 
 // ============================================================ boot
