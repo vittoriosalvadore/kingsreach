@@ -969,8 +969,9 @@ const townFlames=[];
     const bld=new THREE.Mesh(new THREE.BoxGeometry(w,h,2.4),mat(pick(cols),{r:1,map:TEX.wood,bump:TEX.wood,bumpScale:.02}));
     bld.position.set(-6.5+i*2.6+rand(-.3,.3), h/2, -13+rand(-1.2,1.2)); townGroup.add(bld);
     const roof=new THREE.Mesh(new THREE.ConeGeometry(w*0.8,1.6,4),mat(0x241a10,{r:1,map:TEX.wood}));roof.rotation.y=.78;roof.position.set(bld.position.x,h+0.7,bld.position.z);townGroup.add(roof);
-    for(let wy=0;wy<randi(2,4);wy++){const win=new THREE.Mesh(new THREE.PlaneGeometry(.5,.6),mat(0x110a04,{e:0xffc266,ei:2.8}));
-      win.position.set(bld.position.x+rand(-w*.3,w*.3), rand(1.2,h-1), bld.position.z+1.21); townGroup.add(win); townFlames.push(win);}
+    for(let wy=0;wy<randi(2,4);wy++){const winMat=mat(0x110a04,{e:0xffc266,ei:2.8}); winMat.depthWrite=false; winMat.polygonOffset=true; winMat.polygonOffsetFactor=-2; winMat.polygonOffsetUnits=-2;
+      const win=new THREE.Mesh(new THREE.PlaneGeometry(.5,.6),winMat);
+      win.position.set(bld.position.x+rand(-w*.3,w*.3), rand(1.2,h-1), bld.position.z+1.32); win.renderOrder=2; townGroup.add(win); townFlames.push(win);}
   }
   const arch=new THREE.Mesh(new THREE.TorusGeometry(2.4,.4,6,12,Math.PI),mat(0x3a2e1c,{r:1,map:TEX.wood}));arch.position.set(0,2.2,-15);townGroup.add(arch);
   for(const lx of [-2.8,2.8]){
