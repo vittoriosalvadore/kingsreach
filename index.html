@@ -561,7 +561,7 @@ let composer=null, bloomReady=false;
     composer=new EffectComposer(renderer);
     composer.setSize(w,h); composer.setPixelRatio(Math.min(devicePixelRatio,Q.pixel));
     composer.addPass(new RenderPass(scene,camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w,h), 0.55, 0.5, 0.8));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w,h), 0.42, 0.5, 0.85));
     composer.addPass(new OutputPass());
     bloomReady=true;
   }catch(e){ console.warn('[Kingsreach] bloom unavailable:',e&&e.message); bloomReady=false; }
@@ -981,12 +981,12 @@ const townFlames=[];
 })();
 const NPC_FIG=[];
 const NPC_LOOK = {
-  smith:  {skin:0xc2895a, hair:0x2a1a0e, beard:true,  build:1.18, apron:0x3f2a18},
-  jewel:  {skin:0xd8b48c, hair:0x3a2236, beard:false, build:0.95, collar:0xd9b96a, brooch:0x5a8fd6},
-  alch:   {skin:0xcaa882, hair:0xc9c2b4, beard:false, build:0.96, hood:0x244a30, pouch:0x6a4a2a},
-  inn:    {skin:0xc89a6a, hair:0x4a2a14, beard:true,  build:1.12, apron:0x9a8a64},
-  herald: {skin:0xb89a7a, hair:0xd2ccc0, beard:true,  build:1.0,  long:true, hood:0x2c2c38, tabard:0x6a6452},
-  arms:   {skin:0xb88a5e, hair:0x1a120a, beard:true,  build:1.06, baldric:0x32220f, pauldron:0x6a6a72},
+  smith:  {skin:0xc2895a, hair:0x2a1a0e, beard:true,  build:1.18, apron:0x8a5a2e},
+  jewel:  {skin:0xd8b48c, hair:0x3a2236, beard:false, build:0.95, collar:0xf0d46a, brooch:0x6ab0ff},
+  alch:   {skin:0xcaa882, hair:0xc9c2b4, beard:false, build:0.96, hood:0x1f4a2e, pouch:0x9a6a34},
+  inn:    {skin:0xc89a6a, hair:0x4a2a14, beard:true,  build:1.12, apron:0xcebfa0},
+  herald: {skin:0xb89a7a, hair:0xd2ccc0, beard:true,  build:1.0,  long:true, hood:0x222230, tabard:0x9a948a},
+  arms:   {skin:0xb88a5e, hair:0x1a120a, beard:true,  build:1.06, baldric:0x2a1c10, pauldron:0x9aa0ac},
 };
 function buildNpcFig(npc){
   const g=new THREE.Group();
@@ -1000,16 +1000,16 @@ function buildNpcFig(npc){
   const cloak=new THREE.Mesh(new THREE.ConeGeometry(.5*bw,1.32,14),cloth);cloak.position.y=.72;g.add(cloak);
   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.3*bw,.66,5,12),cloth);body.position.y=1.04;g.add(body);
   for(const sx of [-1,1]){ const sh=new THREE.Mesh(new THREE.SphereGeometry(.15*bw,10,8),cloth);sh.position.set(sx*.3*bw,1.38,0);g.add(sh); }
-  // trade outfits
-  if(L.apron){ const apM=mat(L.apron,{r:.85,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.apron,ei:.16});
-    const ap=new THREE.Mesh(new THREE.BoxGeometry(.42*bw,.92,.07),apM);ap.position.set(0,.9,.27*bw);g.add(ap);
-    const bib=new THREE.Mesh(new THREE.BoxGeometry(.26*bw,.32,.06),apM);bib.position.set(0,1.28,.28*bw);g.add(bib); }
-  if(L.tabard){ const tb=new THREE.Mesh(new THREE.BoxGeometry(.24*bw,1.0,.06),mat(L.tabard,{r:.85,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.tabard,ei:.14}));tb.position.set(0,.92,.27*bw);g.add(tb); }
-  if(L.baldric){ const bd=new THREE.Mesh(new THREE.BoxGeometry(.52,.12,.05),mat(L.baldric,{r:.8,map:TEX.cloth,e:L.baldric,ei:.14}));bd.position.set(0,1.05,.28*bw);bd.rotation.z=.62;g.add(bd); }
-  if(L.pauldron){ const pl=new THREE.Mesh(new THREE.SphereGeometry(.17*bw,12,9),mat(L.pauldron,{r:.4,m:.5,e:L.pauldron,ei:.18,map:TEX.metal}));pl.position.set(-.32*bw,1.44,0);pl.scale.y=.7;g.add(pl); }
-  if(L.collar){ const cl=new THREE.Mesh(new THREE.TorusGeometry(.2*bw,.045,8,18),mat(L.collar,{r:.4,m:.6,e:L.collar,ei:.28}));cl.rotation.x=Math.PI/2;cl.position.y=1.42;g.add(cl); }
-  if(L.brooch){ const br=new THREE.Mesh(new THREE.OctahedronGeometry(.06,0),mat(L.brooch,{e:L.brooch,ei:1.4}));br.position.set(0,1.3,.3*bw);g.add(br); }
-  if(L.pouch){ for(const sx of [-1,1]){ const pc=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),mat(L.pouch,{r:.9,e:L.pouch,ei:.12}));pc.position.set(sx*.24*bw,.78,.2);pc.scale.y=1.2;g.add(pc);} }
+  // trade outfits (bold, contrasting, self-lit so they read in the dim town)
+  if(L.apron){ const apM=mat(L.apron,{r:.85,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.apron,ei:.5});
+    const ap=new THREE.Mesh(new THREE.BoxGeometry(.5*bw,1.0,.08),apM);ap.position.set(0,.88,.31*bw);g.add(ap);
+    const bib=new THREE.Mesh(new THREE.BoxGeometry(.3*bw,.36,.07),apM);bib.position.set(0,1.3,.33*bw);g.add(bib); }
+  if(L.tabard){ const tb=new THREE.Mesh(new THREE.BoxGeometry(.3*bw,1.05,.08),mat(L.tabard,{r:.85,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.tabard,ei:.45}));tb.position.set(0,.9,.31*bw);g.add(tb); }
+  if(L.baldric){ const bd=new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.06),mat(L.baldric,{r:.8,map:TEX.cloth,e:L.baldric,ei:.4}));bd.position.set(0,1.05,.32*bw);bd.rotation.z=.62;g.add(bd); }
+  if(L.pauldron){ const pl=new THREE.Mesh(new THREE.SphereGeometry(.2*bw,12,9),mat(L.pauldron,{r:.35,m:.6,e:L.pauldron,ei:.4,map:TEX.metal}));pl.position.set(-.34*bw,1.46,.04);pl.scale.y=.7;g.add(pl); }
+  if(L.collar){ const cl=new THREE.Mesh(new THREE.TorusGeometry(.23*bw,.055,8,20),mat(L.collar,{r:.35,m:.7,e:L.collar,ei:.65}));cl.rotation.x=Math.PI/2;cl.position.set(0,1.43,.04);g.add(cl); }
+  if(L.brooch){ const br=new THREE.Mesh(new THREE.OctahedronGeometry(.075,0),mat(L.brooch,{e:L.brooch,ei:1.8}));br.position.set(0,1.32,.34*bw);g.add(br); }
+  if(L.pouch){ for(const sx of [-1,1]){ const pc=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),mat(L.pouch,{r:.9,e:L.pouch,ei:.4}));pc.position.set(sx*.26*bw,.76,.24);pc.scale.y=1.2;g.add(pc);} }
   // neck + skinned head
   const neck=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,.12,10),skinM);neck.position.y=1.52;g.add(neck);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.21,22,18),skinM);head.position.y=1.68;head.scale.set(.94,1.07,.96);g.add(head);
@@ -1863,15 +1863,15 @@ function openTreasure(){
 
 // ============================================================ TOWN HUB
 const NPCS=[
-  {id:'smith', name:'Borin', role:'Blacksmith', icon:'🛡️', color:0x6a4a2a, x:-5, shop:'armor',
+  {id:'smith', name:'Borin', role:'Blacksmith', icon:'🛡️', color:0x46464e, x:-5, shop:'armor',
    lines:['Steel for the road ahead? Aye, I keep the good stuff.','The deeper lands chew through soft mail. Plate up.','Every dent on this anvil is somebody who didn’t.']},
-  {id:'jewel', name:'Ysolde', role:'Jeweler', icon:'💍', color:0x5a2e5a, x:-3, shop:'trinket',
+  {id:'jewel', name:'Ysolde', role:'Jeweler', icon:'💍', color:0x6a2f7a, x:-3, shop:'trinket',
    lines:['Trinkets with old magic still humming in them.','A ring here turned a coward into a king. Or so they say.','Magic’s cheaper than dying, traveler.']},
   {id:'alch', name:'Old Maeve', role:'Alchemist', icon:'⚗️', color:0x2e5a3a, x:-1, shop:'potion',
    lines:['Potions! Carry a few before the dark.','Drink mid-fight, not after. After is for corpses.','My greater elixir’s saved more fools than prayer.']},
   {id:'arms', name:'Garrick', role:'Arms Dealer', icon:'⚔️', color:0x5a4632, x:1.0, shop:'weapon',
    lines:['Blades, hafts, and a few that hum with worse than steel.','Try the grimoire if you’ve the stomach for spellcraft.','Pick your poison. They all kill, just differently.']},
-  {id:'inn', name:'Hale', role:'Innkeeper', icon:'🍺', color:0x6a4a1a, x:3, rest:true,
+  {id:'inn', name:'Hale', role:'Innkeeper', icon:'🍺', color:0x8a5a24, x:3, rest:true,
    lines:['Rest your bones by the fire, friend.','You look half-dead. Sit. The road can wait.','First night’s on the house.']},
   {id:'herald', name:'The Grey Herald', role:'Watcher', icon:'📜', color:0x3a3a4a, x:5, lore:true, lines:[]},
 ];
@@ -2168,11 +2168,11 @@ function update(dt){
     slashMat.opacity=s*0.85; slashArc.rotation.z=-1.25+G.swingT*2.6; const sc=0.85+G.swingT*0.7; slashArc.scale.set(sc,sc,1);
   } else slashMat.opacity=0;
 
-  if(G.state==='town'){ for(const f of townFlames){ f.material.emissiveIntensity = 1.6+Math.sin(now*.008+f.position.x)*.6; } }
+  if(G.state==='town'){ for(const f of townFlames){ f.material.emissiveIntensity = 1.7+Math.sin(now*.005+f.position.x)*.28; } }
 
   for(let i=PROP_POOL.length-1;i>=0;i--){ const p=PROP_POOL[i];
     if(p.grp.position.z > G.z+14){ disposeProp(p); PROP_POOL.splice(i,1); continue; }
-    const fl=p.grp.userData.flame; if(fl) fl.material.emissiveIntensity = 1.8+Math.sin(now*.01+p.z)*.6;
+    const fl=p.grp.userData.flame; if(fl) fl.material.emissiveIntensity = 1.9+Math.sin(now*.006+p.z)*.3;
   }
   accentLight.position.set(camX,2.2,G.z-5);
   accentLight.intensity=lerp(accentLight.intensity,G.state==='combat'?3.5:(G.state==='town'?0:5),dt*3);
@@ -2207,7 +2207,7 @@ function swingPose(){ return -Math.sin(clamp(G.swingT,0,1)*Math.PI)*1.5; }
 
 function render(){
   if(Q.bloom && bloomReady && composer){
-    composer.render();
+    renderer.autoClear=true; composer.render(); renderer.autoClear=false;
   } else {
     renderer.clear();
     renderer.render(scene,camera);
