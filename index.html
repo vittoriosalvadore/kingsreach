@@ -981,12 +981,12 @@ const townFlames=[];
 })();
 const NPC_FIG=[];
 const NPC_LOOK = {
-  smith:  {skin:0xc2895a, hair:0x2a1a0e, beard:true,  build:1.18},
-  jewel:  {skin:0xd8b48c, hair:0x3a2236, beard:false, build:0.95},
-  alch:   {skin:0xcaa882, hair:0xc9c2b4, beard:false, build:0.96},
-  inn:    {skin:0xc89a6a, hair:0x4a2a14, beard:true,  build:1.12},
-  herald: {skin:0xb89a7a, hair:0xd2ccc0, beard:true,  build:1.0, long:true},
-  arms:   {skin:0xb88a5e, hair:0x1a120a, beard:true,  build:1.06},
+  smith:  {skin:0xc2895a, hair:0x2a1a0e, beard:true,  build:1.18, apron:0x3f2a18},
+  jewel:  {skin:0xd8b48c, hair:0x3a2236, beard:false, build:0.95, collar:0xd9b96a, brooch:0x5a8fd6},
+  alch:   {skin:0xcaa882, hair:0xc9c2b4, beard:false, build:0.96, hood:0x244a30, pouch:0x6a4a2a},
+  inn:    {skin:0xc89a6a, hair:0x4a2a14, beard:true,  build:1.12, apron:0x9a8a64},
+  herald: {skin:0xb89a7a, hair:0xd2ccc0, beard:true,  build:1.0,  long:true, hood:0x2c2c38, tabard:0x6a6452},
+  arms:   {skin:0xb88a5e, hair:0x1a120a, beard:true,  build:1.06, baldric:0x32220f, pauldron:0x6a6a72},
 };
 function buildNpcFig(npc){
   const g=new THREE.Group();
@@ -1000,6 +1000,16 @@ function buildNpcFig(npc){
   const cloak=new THREE.Mesh(new THREE.ConeGeometry(.5*bw,1.32,14),cloth);cloak.position.y=.72;g.add(cloak);
   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.3*bw,.66,5,12),cloth);body.position.y=1.04;g.add(body);
   for(const sx of [-1,1]){ const sh=new THREE.Mesh(new THREE.SphereGeometry(.15*bw,10,8),cloth);sh.position.set(sx*.3*bw,1.38,0);g.add(sh); }
+  // trade outfits
+  if(L.apron){ const apM=mat(L.apron,{r:.85,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.apron,ei:.16});
+    const ap=new THREE.Mesh(new THREE.BoxGeometry(.42*bw,.92,.07),apM);ap.position.set(0,.9,.27*bw);g.add(ap);
+    const bib=new THREE.Mesh(new THREE.BoxGeometry(.26*bw,.32,.06),apM);bib.position.set(0,1.28,.28*bw);g.add(bib); }
+  if(L.tabard){ const tb=new THREE.Mesh(new THREE.BoxGeometry(.24*bw,1.0,.06),mat(L.tabard,{r:.85,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.tabard,ei:.14}));tb.position.set(0,.92,.27*bw);g.add(tb); }
+  if(L.baldric){ const bd=new THREE.Mesh(new THREE.BoxGeometry(.52,.12,.05),mat(L.baldric,{r:.8,map:TEX.cloth,e:L.baldric,ei:.14}));bd.position.set(0,1.05,.28*bw);bd.rotation.z=.62;g.add(bd); }
+  if(L.pauldron){ const pl=new THREE.Mesh(new THREE.SphereGeometry(.17*bw,12,9),mat(L.pauldron,{r:.4,m:.5,e:L.pauldron,ei:.18,map:TEX.metal}));pl.position.set(-.32*bw,1.44,0);pl.scale.y=.7;g.add(pl); }
+  if(L.collar){ const cl=new THREE.Mesh(new THREE.TorusGeometry(.2*bw,.045,8,18),mat(L.collar,{r:.4,m:.6,e:L.collar,ei:.28}));cl.rotation.x=Math.PI/2;cl.position.y=1.42;g.add(cl); }
+  if(L.brooch){ const br=new THREE.Mesh(new THREE.OctahedronGeometry(.06,0),mat(L.brooch,{e:L.brooch,ei:1.4}));br.position.set(0,1.3,.3*bw);g.add(br); }
+  if(L.pouch){ for(const sx of [-1,1]){ const pc=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),mat(L.pouch,{r:.9,e:L.pouch,ei:.12}));pc.position.set(sx*.24*bw,.78,.2);pc.scale.y=1.2;g.add(pc);} }
   // neck + skinned head
   const neck=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,.12,10),skinM);neck.position.y=1.52;g.add(neck);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.21,22,18),skinM);head.position.y=1.68;head.scale.set(.94,1.07,.96);g.add(head);
@@ -1012,6 +1022,7 @@ function buildNpcFig(npc){
   const mouth=new THREE.Mesh(new THREE.BoxGeometry(.07,.014,.02),mat(0x7a4438,{r:.6}));mouth.position.set(0,1.62,.185);g.add(mouth);
   // hair cap (crown + back, clear of the face)
   const hair=new THREE.Mesh(new THREE.SphereGeometry(.215,16,12),hairM);hair.position.set(0,1.74,-.1);hair.scale.set(1.05,.95,1.04);g.add(hair);
+  if(L.hood){ const hd=new THREE.Mesh(new THREE.ConeGeometry(.3*bw,L.long?.62:.5,14),mat(L.hood,{r:.9,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012,e:L.hood,ei:.14}));hd.position.set(0,1.82,-.15);g.add(hd); }
   // facial hair
   if(L.beard){ const n=L.long?16:10; for(let i=0;i<n;i++){ const bl=L.long?rand(.12,.28):rand(.06,.15);
     const st=new THREE.Mesh(new THREE.ConeGeometry(.022,bl,5),hairM); st.position.set(rand(-.1,.1),1.58-rand(0,.1),.1+rand(-.03,.05));
