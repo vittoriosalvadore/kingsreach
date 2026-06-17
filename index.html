@@ -991,11 +991,12 @@ function townHouse(x,z,w,h){
   for(let s=0;s<3;s++){ const pf=new THREE.Mesh(new THREE.SphereGeometry(.16+s*.07,8,6),new THREE.MeshBasicMaterial({color:0x5a5450,transparent:true,opacity:.1,depthWrite:false}));pf.position.set(x+w*0.26+rand(-.12,.12),h+1.75+s*.45,z-s*.12);townGroup.add(pf); }
   const fz=z+d/2+0.12; for(let wy=0;wy<randi(1,3);wy++) townWindow(x+rand(-w*.3,w*.3), 1.0+wy*1.2, fz);
 }
-function townCrowdFig(x,z){ const c=new THREE.Group(); const col=pick([0x4a4038,0x3a4452,0x523a3a,0x44402a,0x2e4a3a]);
-  const cloak=new THREE.Mesh(new THREE.ConeGeometry(.32,.95,9),mat(col,{r:.95,e:col,ei:.1,map:TEX.cloth}));cloak.position.y=.52;c.add(cloak);
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.2,.55,4,8),mat(col,{r:.9,e:col,ei:.12,map:TEX.cloth}));body.position.y=.8;c.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.15,12,9),mat(pick([0xb89a7a,0xc9a87a,0xa88a64]),{r:.7,e:0x2a1f14,ei:.3,map:TEX.skinH}));head.position.y=1.18;c.add(head);
-  c.userData={tx:rand(-4,4),tz:rand(-9,-23),spd:rand(.5,1.0),wt:rand(0,6),pause:rand(0,3)}; c.rotation.y=rand(-.6,.6); c.position.set(x,0,z); townGroup.add(c); townCrowd.push(c);
+function townCrowdFig(x,z){ const c=new THREE.Group(); const col=pick([0x6a5444,0x42566a,0x6a4248,0x586a3a,0x2e5a4a,0x7a5a3a]);
+  const cloak=new THREE.Mesh(new THREE.ConeGeometry(.38,1.15,10),mat(col,{r:.92,e:col,ei:.22,map:TEX.cloth}));cloak.position.y=.62;c.add(cloak);
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.24,.66,4,9),mat(col,{r:.9,e:col,ei:.24,map:TEX.cloth}));body.position.y=.98;c.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.18,14,11),mat(pick([0xc8a87a,0xd8b48c,0xb89a6a]),{r:.7,e:0x4a3422,ei:.45,map:TEX.skinH}));head.position.y=1.46;c.add(head);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(.185,12,9),mat(pick([0x2a1a0e,0x4a3020,0x6a5a4a]),{r:.9,e:0x1a120a,ei:.2}));hair.position.set(0,1.5,-.06);hair.scale.set(1,.85,1);c.add(hair);
+  c.userData={tx:rand(-4.2,4.2),tz:rand(-8,-23),spd:rand(.9,1.6),wt:rand(0,6),pause:rand(0,1.2)}; c.rotation.y=rand(-.6,.6); c.position.set(x,0,z); townGroup.add(c); townCrowd.push(c);
 }
 (function buildTownVillage(){
   const road=new THREE.Mesh(new THREE.PlaneGeometry(6.5,26),mat(0x33291a,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.03}));road.rotation.x=-Math.PI/2;road.position.set(0,.03,-12);townGroup.add(road);
@@ -1010,7 +1011,7 @@ function townCrowdFig(x,z){ const c=new THREE.Group(); const col=pick([0x4a4038,
   const wellBase=new THREE.Mesh(new THREE.CylinderGeometry(.8,.9,1.0,14),mat(0x4a4640,{r:1,map:TEX.stone,bump:TEX.stone,bumpScale:.04}));wellBase.position.set(0,.5,-19);townGroup.add(wellBase);
   for(const sx of [-1,1]){ const wp=new THREE.Mesh(new THREE.BoxGeometry(.12,1.4,.12),mat(0x2a1c10,{r:1,map:TEX.wood}));wp.position.set(sx*.7,1.2,-19);townGroup.add(wp); }
   const wroof=new THREE.Mesh(new THREE.ConeGeometry(1.0,.7,4),mat(0x281c10,{r:1,map:TEX.wood}));wroof.rotation.y=.785;wroof.position.set(0,2.2,-19);townGroup.add(wroof);
-  for(const [sx,sz] of [[-4.2,-10],[4.0,-11],[-3.6,-15],[3.8,-16],[-1.6,-18],[1.8,-13],[2.2,-21],[-2.4,-23]]) townCrowdFig(sx,sz);
+  for(const [sx,sz] of [[-4.2,-10],[4.0,-11],[-3.6,-15],[3.8,-16],[-1.6,-18],[1.8,-13],[2.2,-21],[-2.4,-23],[-3.0,-9],[3.2,-9],[0.6,-16],[-0.8,-20],[3.4,-22],[-3.8,-19]]) townCrowdFig(sx,sz);
 })();
 const NPC_FIG=[];
 const NPC_LOOK = {
@@ -2205,8 +2206,7 @@ function update(dt){
     if(ph<0.3) camY=lerp(1.62,9,easeOut(ph/0.3)); else if(ph<0.6) camY=9; else camY=lerp(9,1.62,easeIn((ph-0.6)/0.4));
     camera.position.set(camX,camY,G.z); camera.lookAt(camX, camY-3.4, G.z-13);
   } else if(G.state==='town'){
-    const sway=Math.sin(G.townT*0.4)*0.5;
-    camera.position.set(sway,2.15,G.z+3.4); camera.lookAt(sway*0.3,1.2,G.z-11);
+    camera.position.set(0,2.15,G.z+3.4); camera.lookAt(0,1.2,G.z-11);
     townLight.position.set(0,4,G.z-9); townFill.position.set(0,5,G.z+3);
     townLight.intensity=lerp(townLight.intensity,12+tod.lant*3,dt*3); townFill.intensity=lerp(townFill.intensity,6.5,dt*3);
     hemi.intensity=lerp(hemi.intensity,1.7*tod.amb,dt*3);
@@ -2229,7 +2229,7 @@ function update(dt){
     for(const c of townCrowd){ const u=c.userData;
       if(u.pause>0){ u.pause-=dt; c.position.y=Math.sin(now*.002+u.wt)*0.03; }
       else { let dx=u.tx-c.position.x, dz=u.tz-c.position.z; const d=Math.hypot(dx,dz);
-        if(d<0.35){ u.tx=rand(-4,4); u.tz=rand(-9,-23); u.pause=rand(0.5,3.5); }
+        if(d<0.35){ u.tx=rand(-4.2,4.2); u.tz=rand(-8,-23); u.pause=rand(0.2,1.6); }
         else { const v=Math.min(d,u.spd*dt); c.position.x+=dx/d*v; c.position.z+=dz/d*v; c.rotation.y=Math.atan2(dx,dz); u.wt+=dt*9; c.position.y=Math.abs(Math.sin(u.wt))*0.06; } } } }
 
   for(let i=PROP_POOL.length-1;i>=0;i--){ const p=PROP_POOL[i];
