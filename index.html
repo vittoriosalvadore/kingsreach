@@ -151,7 +151,10 @@
   .ev-cost{color:#d07f7f;font-weight:bold;}
 
   #townOv{justify-content:flex-end;padding-bottom:26px;background:linear-gradient(rgba(0,0,0,0) 40%,rgba(4,3,8,.82) 78%);backdrop-filter:none;-webkit-backdrop-filter:none;}
-  #catalogOv{justify-content:flex-end;padding-bottom:22px;gap:8px;background:linear-gradient(rgba(0,0,0,0) 30%,rgba(4,3,8,.88) 66%);backdrop-filter:none;-webkit-backdrop-filter:none;}
+  #catalogOv{justify-content:flex-end;padding-bottom:16px;gap:5px;background:linear-gradient(rgba(0,0,0,0) 55%,rgba(4,3,8,.6) 64%,rgba(4,3,8,.93) 76%);backdrop-filter:none;-webkit-backdrop-filter:none;}
+  #catalogItems{max-height:32vh;}
+  #catalogOv .title{font-size:20px!important;margin-bottom:0;}
+  #catalogOv .subtitle{font-size:11px!important;}
   #townHead{position:absolute;top:60px;left:0;right:0;text-align:center;}
   #townName{font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 2px 12px rgba(217,185,106,.4),0 2px 5px #000;}
   #townSub{font-size:11px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;margin-top:3px;}
@@ -1069,7 +1072,8 @@ function buildNpcFig(npc){
 
 // ============================================================ 3D shop interiors
 const interiorGroup = new THREE.Group(); interiorGroup.visible=false; scene.add(interiorGroup);
-const interiorLight = new THREE.PointLight(0xffc99a, 0, 30, 2); scene.add(interiorLight);
+const interiorLight = new THREE.PointLight(0xffd2a4, 0, 40, 1.5); scene.add(interiorLight);
+const interiorFill = new THREE.PointLight(0xbfd0e0, 0, 24, 1.7); scene.add(interiorFill);
 let shopAnim=[];
 function clearInterior(){ for(let i=interiorGroup.children.length-1;i>=0;i--){ const o=interiorGroup.children[i];
   o.traverse(m=>{ if(m.geometry) m.geometry.dispose(); if(m.material){ (Array.isArray(m.material)?m.material:[m.material]).forEach(mm=>mm.dispose&&mm.dispose()); } }); interiorGroup.remove(o); } shopAnim.length=0; }
@@ -1107,12 +1111,13 @@ function buildInterior(npc){
 function enterShop(npc){
   hide('townOv'); G.shopNpc=npc; townGroup.visible=false;
   buildInterior(npc); interiorGroup.position.set(0,0.05,G.z); interiorGroup.visible=true;
-  interiorLight.position.set(0,3.4,G.z-3); interiorLight.intensity=0;
+  interiorLight.position.set(0,2.7,G.z-2.4); interiorLight.intensity=0;
+  interiorFill.position.set(0,1.8,G.z+0.6); interiorFill.intensity=0;
   stopTownMusic(); startShopAmbience(npc.shop);
   openShopCatalog(npc.shop); G.state='interior';
 }
 function leaveShop(){
-  stopShopAmbience(); interiorGroup.visible=false; clearInterior(); interiorLight.intensity=0;
+  stopShopAmbience(); interiorGroup.visible=false; clearInterior(); interiorLight.intensity=0; interiorFill.intensity=0;
   hide('catalogOv'); G.state='town'; townGroup.visible=true; startTownMusic(); $('townGold').textContent=G.gold; show('townOv'); refreshHUD();
 }
 
@@ -2267,8 +2272,9 @@ function update(dt){
     townLight.intensity=lerp(townLight.intensity,12+tod.lant*3,dt*3); townFill.intensity=lerp(townFill.intensity,6.5,dt*3);
     hemi.intensity=lerp(hemi.intensity,1.7*tod.amb,dt*3);
   } else if(G.state==='interior'){
-    camera.position.set(0,1.7,G.z+1.4); camera.lookAt(0,1.4,G.z-3.8);
-    interiorLight.intensity=lerp(interiorLight.intensity,16,dt*4);
+    camera.position.set(0,2.0,G.z+0.6); camera.lookAt(0,0.95,G.z-4.0);
+    interiorLight.intensity=lerp(interiorLight.intensity,30,dt*4);
+    interiorFill.intensity=lerp(interiorFill.intensity,9,dt*4);
     for(const a of shopAnim){ a.m.material.emissiveIntensity=a.base+Math.sin(now*a.spd)*a.amp; }
   } else {
     camera.position.set(camX,1.62+Math.sin(G.bob)*0.05,G.z);
