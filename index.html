@@ -433,7 +433,7 @@ const toRoman = n=>ROMAN[n]||('#'+n);
 
 // ============================================================ graphics quality
 const QPRESETS = {
-  low:    { key:'low',    label:'Low',    pixel:1.0, aa:false, motes:0,  props:0.5,  fx:0.0, slash:false, shock:true, fog:0.008, dist:110, bloom:false },
+  low:    { key:'low',    label:'Low',    pixel:1.0, aa:false, motes:30, props:0.5,  fx:0.45, slash:false, shock:true, fog:0.008, dist:110, bloom:false },
   medium: { key:'medium', label:'Medium', pixel:1.5, aa:true,  motes:45, props:0.85, fx:0.6, slash:true,  shock:true, fog:0.005, dist:150, bloom:false },
   high:   { key:'high',   label:'High',   pixel:2.0, aa:true,  motes:90, props:1.0,  fx:1.0, slash:true,  shock:true, fog:0.003, dist:190, bloom:false },
 };
@@ -454,20 +454,25 @@ const B = Object.assign({}, BPRESETS[BKEY]);
 
 // ============================================================ persistent meta-progression (souls bank + permanent upgrades + records)
 const SAVE_KEY = 'kingsreach_save_v1';
-const META_DEFAULT = { souls:0, totalKills:0, runs:0, best:{depth:0,act:1,kills:0}, upg:{hp:0,atk:0,potion:0,gold:0} };
-const _clone = o => JSON.parse(JSON.stringify(o));
-function loadMeta(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&typeof s==='object'){
-    const m=_clone(META_DEFAULT); m.souls=s.souls|0; m.totalKills=s.totalKills|0; m.runs=s.runs|0;
-    if(s.best) Object.assign(m.best,s.best); if(s.upg) Object.assign(m.upg,s.upg); return m; } }catch(e){}
-  return _clone(META_DEFAULT); }
-let META = loadMeta();
-function saveMeta(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(META)); }catch(e){} }
 const SOUL_UPG = [
   {key:'hp',     icon:'❤', name:'Vitality',    desc:'+15 max health each run',            max:8, cost:l=>20+l*18},
   {key:'atk',    icon:'⚔', name:'Might',        desc:'+2 attack each run',                 max:8, cost:l=>24+l*20},
   {key:'potion', icon:'🧪', name:'Provisioner',  desc:'Begin each run with +1 healing draught', max:3, cost:l=>45+l*45},
   {key:'gold',   icon:'◈', name:'Coffers',      desc:'Begin each run with +25 gold',       max:6, cost:l=>18+l*16},
 ];
+const META_DEFAULT = { souls:0, totalKills:0, runs:0, best:{depth:0,act:1,kills:0}, upg:{hp:0,atk:0,potion:0,gold:0} };
+const _clone = o => JSON.parse(JSON.stringify(o));
+const _int = (v,def,mn,mx)=>{ v=Math.floor(Number(v)); return Number.isFinite(v)?clamp(v,mn,mx):def; };
+// load + VALIDATE: a corrupt / tampered / old-schema save must never yield NaN or out-of-range stats (that would brick the run — NaN HP is never <=0, so you'd be unkillable)
+function loadMeta(){ const m=_clone(META_DEFAULT);
+  try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&typeof s==='object'){
+    m.souls=_int(s.souls,0,0,1e9); m.totalKills=_int(s.totalKills,0,0,1e9); m.runs=_int(s.runs,0,0,1e9);
+    if(s.best&&typeof s.best==='object'){ m.best.depth=_int(s.best.depth,0,0,1e9); m.best.act=_int(s.best.act,1,1,9999); m.best.kills=_int(s.best.kills,0,0,1e9); }
+    for(const u of SOUL_UPG){ m.upg[u.key]=_int(s.upg&&s.upg[u.key],0,0,u.max); }
+  } }catch(e){}
+  return m; }
+let META = loadMeta();
+function saveMeta(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(META)); }catch(e){} }
 
 // ============================================================ biomes (cycled by act)
 const BIOMES = [
@@ -2034,7 +2039,7 @@ function talkNPC(npc){
   const line = npc.lore ? ('They say of the road ahead: “'+nextBiome().rumor+'”') : pick(npc.lines);
   $('dlgText').textContent = '“'+line+'”';
   const btns=[];
-  if(npc.shop) btns.push({label:(npc.shop==='armor'?'Browse Armoury':npc.shop==='trinket'?'Browse Charms & Talismans':npc.shop==='weapon'?'Browse Weapons':'Browse Potions'), cls:'primary', fn:()=>{ hide('dlgOv'); openShopCatalog(npc.shop); }});
+  if(npc.shop) btns.push({label:(npc.shop==='armor'?'Browse Armoury':npc.shop==='trinket'?'Browse Charms & Talismans':npc.shop==='weapon'?'Browse Weapons':'Browse Potions'), cls:'primary', fn:()=>{ hide('dlgOv'); enterShop(npc); }});
   if(npc.rest) btns.push({label:'Rest (full heal)', cls:'primary', fn:()=>restAtInn()});
   if(npc.lore) btns.push({label:'Any other news?', cls:'primary', fn:()=>{ $('dlgText').textContent='“'+pick(['Coin buys steel. Steel buys time. Time is all any of us get.','I’ve watched a hundred walk out that gate. I remember the faces, not the names.','Drink before you need to. The need comes fast.'])+'”'; }});
   btns.push({label:'Farewell', cls:'ghost', fn:()=>backToTown()});
@@ -2044,7 +2049,7 @@ function talkNPC(npc){
   show('dlgOv');
 }
 function restAtInn(){ G.hp=G.maxHp; flashLog('Fully rested'); audio('heal'); backToTown(); }
-function backToTown(){ hide('dlgOv'); hide('catalogOv'); $('townGold').textContent=G.gold; G.state='town'; show('townOv'); refreshHUD(); }
+function backToTown(){ if(interiorGroup.visible){ leaveShop(); return; } hide('dlgOv'); hide('catalogOv'); $('townGold').textContent=G.gold; G.state='town'; show('townOv'); refreshHUD(); }
 function takeTheRoad(){
   hide('townOv'); townGroup.visible=false;
   G.state='travel'; G.actNodes=0; G.firstNode=true; G.lastWasFork=false; G.nodeAt=G.depth+rand(6,9);
@@ -2217,6 +2222,7 @@ addEventListener('resize',resize); new ResizeObserver(resize).observe(gameEl); r
 let last=performance.now();
 function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; update(dt); render(); requestAnimationFrame(frame); }
 let curFog=new THREE.Color(BIOMES[0].fog);
+const _lc=new THREE.Color(); // scratch color reused per-frame for tint lerps (avoids ~11 allocations/frame -> GC stutter)
 function update(dt){
   const now=performance.now();
   if(G.hitStop>0){ G.hitStop=Math.max(0,G.hitStop-dt); dt*=0.05; }
@@ -2246,17 +2252,17 @@ function update(dt){
   const fogT = inTown?tod.fog:b.fog, skyT = inTown?tod.sky:b.sky, sunC = inTown?tod.sun:b.sun, sunI = inTown?tod.sunI:b.sunInt;
   const starTgt = inTown ? (tod.name==='Night'?1.0:tod.name==='Dusk'?0.4:0.0) : (b.prop==='dungeon'?0.15:(b.prop==='castle'?1.0:0.8));
   lantMul = inTown ? tod.lant : 1;
-  curFog.lerp(new THREE.Color(fogT),dt*1.5); scene.fog.color.copy(curFog); renderer.setClearColor(curFog,1);
-  skyUniforms.top.value.lerp(new THREE.Color(skyT[0]),dt*1.5);
-  skyUniforms.horizon.value.lerp(new THREE.Color(skyT[1]),dt*1.5);
-  skyUniforms.bottom.value.lerp(new THREE.Color(skyT[2]),dt*1.5);
+  curFog.lerp(_lc.set(fogT),dt*1.5); scene.fog.color.copy(curFog); renderer.setClearColor(curFog,1);
+  skyUniforms.top.value.lerp(_lc.set(skyT[0]),dt*1.5);
+  skyUniforms.horizon.value.lerp(_lc.set(skyT[1]),dt*1.5);
+  skyUniforms.bottom.value.lerp(_lc.set(skyT[2]),dt*1.5);
   skyUniforms.starInt.value += (starTgt-skyUniforms.starInt.value)*dt*1.5; skyUniforms.uTime.value += dt;
-  hemi.color.lerp(new THREE.Color(inTown?(tod.amb>1.2?0xbcd0e2:0x5a5870):b.hemiSky),dt*1.5); hemi.groundColor.lerp(new THREE.Color(b.hemiGround),dt*1.5);
-  sun.color.lerp(new THREE.Color(sunC),dt*1.5); sun.intensity=lerp(sun.intensity,sunI,dt*1.5);
-  moteMat.color.lerp(new THREE.Color(b.accent),dt*1.5); accentLight.color.lerp(new THREE.Color(b.accent),dt*2);
-  mistMat.color.lerp(new THREE.Color(b.hemiSky),dt*1.5);
+  hemi.color.lerp(_lc.set(inTown?(tod.amb>1.2?0xbcd0e2:0x5a5870):b.hemiSky),dt*1.5); hemi.groundColor.lerp(_lc.set(b.hemiGround),dt*1.5);
+  sun.color.lerp(_lc.set(sunC),dt*1.5); sun.intensity=lerp(sun.intensity,sunI,dt*1.5);
+  moteMat.color.lerp(_lc.set(b.accent),dt*1.5); accentLight.color.lerp(_lc.set(b.accent),dt*2);
+  mistMat.color.lerp(_lc.set(b.hemiSky),dt*1.5);
   // seasonal weather tint + fall speed
-  const sea=SEASON[seasonIdx()]; wMat.color.lerp(new THREE.Color(sea.wcol),dt*1.2); weatherFall=sea.fall;
+  const sea=SEASON[seasonIdx()]; wMat.color.lerp(_lc.set(sea.wcol),dt*1.2); weatherFall=sea.fall;
   updateWeather(dt); updateMist(dt); updateTelegraph();
   if(G.state==='travel'){ stepT-=dt; if(stepT<=0){ stepT=0.34; burst(G.x+rand(-.45,.45),0.05,G.z-0.5,{color:0x6a6052,n:3,spd:1.3,life:.55,grav:6,up:true}); } }
 
