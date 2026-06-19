@@ -21,6 +21,8 @@
   #game{position:relative;height:100dvh;height:100vh;width:min(100vw,56.25dvh);width:min(100vw,56.25vh);
     overflow:hidden;background:#05060a;box-shadow:0 0 60px #000;}
   canvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;image-rendering:pixelated;}
+  #hud{position:absolute;inset:0;z-index:7;pointer-events:auto;}
+  #topbar,#controls,#focuswrap,#enemyplate,#smiteBtn,#potionBtn,#fadelog,#combo{display:none!important;}
 
   #grade{position:absolute;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(120% 90% at 50% 38%, rgba(0,0,0,0) 42%, rgba(0,0,0,.62) 100%),linear-gradient(rgba(20,10,30,.05),rgba(0,0,0,.18));}
@@ -240,6 +242,7 @@
 <body>
 <div id="wrap"><div id="game">
   <canvas id="c"></canvas>
+  <canvas id="hud"></canvas>
   <div id="grade"></div>
   <div id="hitflash"></div>
   <div id="lowhp"></div>
@@ -1636,6 +1639,168 @@ const POTIONS = [
 ];
 
 // ============================================================ HUD
+// ============================================================ handmade 5x7 bitmap pixel font
+var FONT = {
+  ' ': ['.....','.....','.....','.....','.....','.....','.....'],
+  '0': ['.XXX.','X...X','X..XX','X.X.X','XX..X','X...X','.XXX.'],
+  '1': ['..X..','.XX..','..X..','..X..','..X..','..X..','.XXX.'],
+  '2': ['.XXX.','X...X','....X','...X.','..X..','.X...','XXXXX'],
+  '3': ['XXXXX','...X.','..X..','...X.','....X','X...X','.XXX.'],
+  '4': ['...X.','..XX.','.X.X.','X..X.','XXXXX','...X.','...X.'],
+  '5': ['XXXXX','X....','XXXX.','....X','....X','X...X','.XXX.'],
+  '6': ['..XX.','.X...','X....','XXXX.','X...X','X...X','.XXX.'],
+  '7': ['XXXXX','....X','...X.','..X..','.X...','.X...','.X...'],
+  '8': ['.XXX.','X...X','X...X','.XXX.','X...X','X...X','.XXX.'],
+  '9': ['.XXX.','X...X','X...X','.XXXX','....X','...X.','.XX..'],
+  'A': ['.XXX.','X...X','X...X','XXXXX','X...X','X...X','X...X'],
+  'B': ['XXXX.','X...X','X...X','XXXX.','X...X','X...X','XXXX.'],
+  'C': ['.XXX.','X...X','X....','X....','X....','X...X','.XXX.'],
+  'D': ['XXXX.','X...X','X...X','X...X','X...X','X...X','XXXX.'],
+  'E': ['XXXXX','X....','X....','XXXX.','X....','X....','XXXXX'],
+  'F': ['XXXXX','X....','X....','XXXX.','X....','X....','X....'],
+  'G': ['.XXX.','X...X','X....','X.XXX','X...X','X...X','.XXX.'],
+  'H': ['X...X','X...X','X...X','XXXXX','X...X','X...X','X...X'],
+  'I': ['.XXX.','..X..','..X..','..X..','..X..','..X..','.XXX.'],
+  'J': ['..XXX','...X.','...X.','...X.','X..X.','X..X.','.XX..'],
+  'K': ['X...X','X..X.','X.X..','XX...','X.X..','X..X.','X...X'],
+  'L': ['X....','X....','X....','X....','X....','X....','XXXXX'],
+  'M': ['X...X','XX.XX','X.X.X','X.X.X','X...X','X...X','X...X'],
+  'N': ['X...X','XX..X','X.X.X','X.X.X','X..XX','X...X','X...X'],
+  'O': ['.XXX.','X...X','X...X','X...X','X...X','X...X','.XXX.'],
+  'P': ['XXXX.','X...X','X...X','XXXX.','X....','X....','X....'],
+  'Q': ['.XXX.','X...X','X...X','X...X','X.X.X','X..X.','.XX.X'],
+  'R': ['XXXX.','X...X','X...X','XXXX.','X.X..','X..X.','X...X'],
+  'S': ['.XXXX','X....','X....','.XXX.','....X','....X','XXXX.'],
+  'T': ['XXXXX','..X..','..X..','..X..','..X..','..X..','..X..'],
+  'U': ['X...X','X...X','X...X','X...X','X...X','X...X','.XXX.'],
+  'V': ['X...X','X...X','X...X','X...X','X...X','.X.X.','..X..'],
+  'W': ['X...X','X...X','X...X','X.X.X','X.X.X','XX.XX','X...X'],
+  'X': ['X...X','X...X','.X.X.','..X..','.X.X.','X...X','X...X'],
+  'Y': ['X...X','X...X','.X.X.','..X..','..X..','..X..','..X..'],
+  'Z': ['XXXXX','....X','...X.','..X..','.X...','X....','XXXXX'],
+  '.': ['.....','.....','.....','.....','.....','.XX..','.XX..'],
+  ',': ['.....','.....','.....','.....','.XX..','.XX..','.X...'],
+  ':': ['.....','.XX..','.XX..','.....','.XX..','.XX..','.....'],
+  '!': ['..X..','..X..','..X..','..X..','..X..','.....','..X..'],
+  '?': ['.XXX.','X...X','....X','..XX.','..X..','.....','..X..'],
+  '/': ['....X','....X','...X.','..X..','.X...','X....','X....'],
+  '-': ['.....','.....','.....','XXXXX','.....','.....','.....'],
+  '+': ['.....','..X..','..X..','XXXXX','..X..','..X..','.....'],
+  '%': ['XX..X','XX.X.','...X.','..X..','.X...','X.XX.','X.XX.'],
+  "'": ['..X..','..X..','..X..','.....','.....','.....','.....'],
+  '"': ['.X.X.','.X.X.','.X.X.','.....','.....','.....','.....'],
+  '(': ['..XX.','.X...','.X...','.X...','.X...','.X...','..XX.'],
+  ')': ['.XX..','...X.','...X.','...X.','...X.','...X.','.XX..'],
+  '×': ['.....','X...X','.X.X.','..X..','.X.X.','X...X','.....'],
+  '·': ['.....','.....','.....','.XX..','.XX..','.....','.....'],
+  '▸': ['.....','.X...','.XX..','.XXX.','.XX..','.X...','.....']
+};
+function pf(ctx, str, x, y, color, scale, spacing){
+  scale = scale || 1; if (spacing === undefined) spacing = 1;
+  ctx.fillStyle = color; var cx = x;
+  for (var i = 0; i < str.length; i++){
+    var ch = str.charAt(i); var g = FONT[ch];
+    if (!g){ var up = ch.toUpperCase(); if (FONT[up]) g = FONT[up]; }
+    if (g){ for (var r = 0; r < 7; r++){ var row = g[r];
+      for (var c = 0; c < 5; c++){ if (row.charAt(c) === 'X') ctx.fillRect(cx + c*scale, y + r*scale, scale, scale); } } }
+    cx += (5 + spacing) * scale;
+  }
+  return cx - spacing * scale;
+}
+function pfWidth(str, scale, spacing){ scale = scale || 1; if (spacing === undefined) spacing = 1;
+  if (str.length === 0) return 0; return (str.length*5 + (str.length-1)*spacing) * scale; }
+function pfShadow(ctx, str, x, y, color, shadowColor, scale, spacing){ scale = scale || 1; if (spacing === undefined) spacing = 1;
+  pf(ctx, str, x+scale, y+scale, shadowColor, scale, spacing); return pf(ctx, str, x, y, color, scale, spacing); }
+
+// ============================================================ handmade pixel HUD chrome
+function _shade(hex, k){ var n=parseInt(hex.slice(1),16); var r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.max(0,Math.min(255,Math.round(r*k))); g=Math.max(0,Math.min(255,Math.round(g*k))); b=Math.max(0,Math.min(255,Math.round(b*k)));
+  return '#'+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1); }
+function pFrame(ctx,x,y,w,h,opt){ opt=opt||{}; var fill=opt.fill||'#0d0c0a',light=opt.light||'#4a4334',dark=opt.dark||'#08070a',edge=opt.edge||'#08070a';
+  x=x|0;y=y|0;w=w|0;h=h|0; if(w<3||h<3){ ctx.fillStyle=fill; ctx.fillRect(x,y,w,h); return; }
+  ctx.fillStyle=edge; ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=fill; ctx.fillRect(x+1,y+1,w-2,h-2);
+  ctx.fillStyle=light; ctx.fillRect(x+1,y+1,w-2,1); ctx.fillRect(x+1,y+1,1,h-2);
+  ctx.fillStyle=dark; ctx.fillRect(x+1,y+h-2,w-2,1); ctx.fillRect(x+w-2,y+1,1,h-2); }
+function pBar(ctx,x,y,w,h,frac,opt){ opt=opt||{}; var fill=opt.fill||'#c0392b',track=opt.track||'#3a1715',light=opt.light||'#4a4334',dark='#08070a';
+  x=x|0;y=y|0;w=w|0;h=h|0; var f=frac; if(f<0)f=0; if(f>1)f=1;
+  ctx.fillStyle=dark; ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=track; ctx.fillRect(x+1,y+1,w-2,h-2);
+  ctx.fillStyle=dark; ctx.fillRect(x+1,y+1,w-2,1); ctx.fillRect(x+1,y+1,1,h-2);
+  var fw=Math.round((w-2)*f); if(fw>0){ ctx.fillStyle=fill; ctx.fillRect(x+1,y+1,fw,h-2);
+    if(h-2>=2){ ctx.fillStyle=light; ctx.fillRect(x+1,y+1,fw,1); } } }
+function _blit(ctx,x,y,map,pal){ for(var r=0;r<map.length;r++){ var row=map[r];
+  for(var c=0;c<row.length;c++){ var ch=row.charAt(c); if(ch===' '||ch==='.')continue; var col=pal[ch]; if(!col)continue; ctx.fillStyle=col; ctx.fillRect((x+c)|0,(y+r)|0,1,1); } } }
+function iconHeart(ctx,x,y,col){ col=col||'#c0392b'; var pal={H:_shade(col,1.45),M:col,D:_shade(col,0.62)};
+  _blit(ctx,x,y,[".HM.MD.","HMMMMMD","HMMMMMD","DMMMMMD",".DMMMD.","..DMD..","...D..."],pal); }
+function iconCoin(ctx,x,y){ var pal={H:'#f0d98c',G:'#d9b96a',D:'#8a743f',E:'#5a4a28'};
+  _blit(ctx,x,y,["...H...","..HGD..",".HGGGD.","HGGGGGE",".DGGGE.","..DGE..","...E..."],pal); }
+function iconSword(ctx,x,y){ var pal={H:'#e8e2d2',S:'#9a948a',D:'#5a564e',G:'#d9b96a',g:'#8a743f'};
+  _blit(ctx,x,y,["....HS.","...HSD.","..HSD..",".gGg...","..S....","..g....","..D...."],pal); }
+function iconShield(ctx,x,y){ var pal={H:'#f0d98c',G:'#d9b96a',D:'#8a743f',F:'#3a3026',f:'#241c14'};
+  _blit(ctx,x,y,["HGGGGGD","GFFFFFD","GFFFFfD","DFFFFfD",".DFFfD.","..DfD..","...D..."],pal); }
+function iconFlask(ctx,x,y,col){ col=col||'#c0392b'; var pal={K:'#8a743f',N:'#9a948a',G:'#cfcabd',L:col,H:_shade(col,1.4),D:_shade(col,0.6),g:'#5a564e'};
+  _blit(ctx,x,y,["..KK...","..NN...",".gNNg..",".GHLLD.",".GLLLD.",".gLLLg.","..ggg.."],pal); }
+function iconSpark(ctx,x,y){ var pal={C:'#fff4d0',G:'#f0d98c',g:'#d9b96a',D:'#8a743f'};
+  _blit(ctx,x,y,["...G...","...g...",".G.C.D.","GgCCCgD",".G.C.D.","...g...","...D..."],pal); }
+function iconBoot(ctx,x,y){ var pal={H:'#a86b3a',L:'#7a4a26',D:'#4a2c16',S:'#8a743f',s:'#5a4a28'};
+  _blit(ctx,x,y,[".HL....",".HL....",".HLD...",".HLD...",".HLLD..",".HLLLD.",".SSSSs."],pal); }
+
+// ============================================================ HUD overlay (low-res canvas, world-pixel scale)
+const hud = $('hud'); const hctx = hud.getContext('2d'); hctx.imageSmoothingEnabled=false;
+let BTN=[], _hudSwipe=null, hudLog='';
+function sizeHud(){ if(canvas.width){ hud.width=canvas.width; hud.height=canvas.height; hctx.imageSmoothingEnabled=false; } }
+function hudBtn(x,y,w,h,fn,drawIcon,label,accent){
+  pFrame(hctx,x,y,w,h,{fill:'#1a1206',light:accent||'#4a4334',dark:'#08070a'});
+  const cx=x+(w>>1); if(drawIcon) drawIcon(cx-3, y+3);
+  if(label){ const lw=pfWidth(label,1,1); pf(hctx,label, cx-(lw>>1), y+h-8, '#e8dcc0',1,1); }
+  BTN.push({x,y,w,h,fn});
+}
+function drawHUD2D(){
+  const HW=hud.width, HH=hud.height; if(!HW) return;
+  hctx.clearRect(0,0,HW,HH); BTN.length=0;
+  if(!(G.state==='combat'||G.state==='travel')) return;
+  // top: HP bar + number
+  const hpw=Math.round(HW*0.46);
+  pBar(hctx,3,3,hpw,8, G.hp/G.maxHp, {fill:'#c0392b',track:'#3a1715'});
+  const hptxt=Math.ceil(G.hp)+'/'+G.maxHp, hpx=3+Math.round((hpw-pfWidth(hptxt,1,1))/2);
+  pfShadow(hctx,hptxt, hpx, 4, '#f4ece0','#3a0a08',1,1);
+  // stats row
+  let sx=4, sy=13; iconSword(hctx,sx,sy); sx=pf(hctx,''+G.atk, sx+8, sy+1,'#e8e2d2',1,1)+5;
+  iconShield(hctx,sx,sy); sx=pf(hctx,''+G.def, sx+8, sy+1,'#e8e2d2',1,1)+5;
+  if(G.crit){ pf(hctx,G.crit+'%', sx, sy+1,'#9c8f6a',1,1); }
+  // gold top-right
+  const gt=''+G.gold, gw=pfWidth(gt,1,1); iconCoin(hctx, HW-4-gw-9, 3); pf(hctx,gt, HW-3-gw, 4,'#d9b96a',1,1);
+  // biome + sub centered
+  const bn=curBiome().name.toUpperCase(), bw=pfWidth(bn,1,1); pfShadow(hctx,bn, Math.round(HW/2-bw/2), 2,'#d9b96a','#08070a',1,1);
+  const sub='ACT '+G.act+' · '+Math.floor(G.depth)+'M · '+G.kills+' SLAIN', sw=pfWidth(sub,1,1); pf(hctx,sub, Math.round(HW/2-sw/2), 11,'#9c8f6a',1,1);
+  // buff row
+  let bx=4, by=22; for(const b of G.tempBuffs){ const ic=b.stat==='atk'?iconSword:b.stat==='def'?iconShield:iconBoot; ic(hctx,bx,by); bx=pf(hctx,Math.ceil(b.t)+'',bx+8,by+1,'#9fe0a4',1,1)+4; }
+  if(G.atkDebuffT>0){ pf(hctx,'-ATK '+Math.ceil(G.atkDebuffT), bx, by+1,'#e0a0a0',1,1); }
+  // enemy plate
+  if(G.state==='combat' && G.enemy && !G.enemy.dead){ const en=(G.enemy.name||'').toUpperCase(), ew=pfWidth(en,1,1), ey=Math.round(HH*0.10);
+    pfShadow(hctx,en, Math.round(HW/2-ew/2), ey,'#e9d6d2','#08070a',1,1);
+    pBar(hctx, Math.round(HW/2-32), ey+9, 64, 5, G.enemy.hp/G.enemy.max, {fill:'#d14b3a',track:'#2a1414'}); }
+  // combo
+  if(G.combo>=2 && G.state==='combat'){ const ct='COMBO ×'+G.combo, cw=pfWidth(ct,1,1); pfShadow(hctx,ct, Math.round(HW/2-cw/2), Math.round(HH*0.26),'#ffd86a','#08070a',1,1); }
+  // log
+  if(logT>0 && hudLog){ const lw=pfWidth(hudLog,1,1); pfShadow(hctx,hudLog, Math.round(HW/2-lw/2), Math.round(HH*0.32),'#e8dcc0','#08070a',1,1); }
+  // focus bar
+  if(G.state==='combat'){ const fy=HH-52, ready=G.focus>=100; iconSpark(hctx, Math.round(HW/2-31), fy-1);
+    pBar(hctx, Math.round(HW/2-21), fy, 42, 4, G.focus/100, {fill:ready?'#ffe6a0':'#d9b96a',track:'#2a2620'}); }
+  // buttons
+  hudBtn(HW-44, HH-44, 40,40, ()=>onStrike(), (ix,iy)=>iconSword(hctx,ix,iy), 'STRIKE', '#d2785a');
+  hudBtn(4, HH-38, 34,34, ()=>onDodge(chance(.5)?-1:1), (ix,iy)=>iconBoot(hctx,ix,iy), 'DODGE', '#5a8fd6');
+  if(G.state==='combat'&&G.focus>=100) hudBtn(Math.round(HW/2-18), HH-42, 36,36, ()=>onSmite(), (ix,iy)=>iconSpark(hctx,ix,iy), 'SMITE', '#ffd24a');
+  if((G.state==='combat'||G.state==='travel')&&G.potions.length>0) hudBtn(4, HH-76, 32,32, ()=>togglePotionTray(), (ix,iy)=>iconFlask(hctx,ix,iy,'#6cf09a'), '×'+G.potions.length, '#6cf09a');
+}
+hud.addEventListener('pointerdown',e=>{ e.preventDefault(); const r=hud.getBoundingClientRect(); if(!r.width) return;
+  const px=(e.clientX-r.left)/r.width*hud.width, py=(e.clientY-r.top)/r.height*hud.height;
+  const b=BTN.find(b=>px>=b.x&&px<=b.x+b.w&&py>=b.y&&py<=b.y+b.h);
+  if(b){ b.fn(); _hudSwipe=null; } else { _hudSwipe=e.clientX; } });
+hud.addEventListener('pointerup',e=>{ if(_hudSwipe!=null){ const dx=e.clientX-_hudSwipe;
+  if(G.state==='combat'){ if(Math.abs(dx)>40) onDodge(dx>0?1:-1); else onStrike(); } _hudSwipe=null; } });
+
 const ui = {
   hp:$('hpfill'), atk:$('atkline'), gold:$('gold'), gear:$('gearrow'), buffrow:$('buffrow'),
   biome:$('biome'), depth:$('depth'),
@@ -1645,24 +1810,9 @@ const ui = {
   strike:$('strikeBtn'), dodge:$('dodgeBtn'), combo:$('combo'), lowhp:$('lowhp'),
 };
 function refreshHUD(){
-  ui.hp.style.width = clamp(G.hp/G.maxHp*100,0,100)+'%';
-  ui.atk.innerHTML = `⚔ ${G.atk} &nbsp; 🛡 ${G.def} &nbsp; ❤ ${Math.ceil(G.hp)}`;
-  ui.gold.textContent = G.gold;
-  ui.depth.textContent = `Act ${G.act} · ${Math.floor(G.depth)}m · ${G.kills} slain`;
-  ui.biome.textContent = curBiome().name;
-  const chips=[]; const w=G.equip.weapon; chips.push(`<span class="gchip">${WEAPON_DEF[w.wtype].icon} ${WEAPON_DEF[w.wtype].cls}</span>`);
-  for(const k of ['helmet','armor','under','gloves','trinket','talisman']){ if(G.equip[k]) chips.push(`<span class="gchip">${SLOTS[k].icon}</span>`); }
-  ui.gear.innerHTML = chips.join('');
-  const bchips=[]; const seen={};
-  for(const b of G.tempBuffs){ if(!seen[b.stat]){ seen[b.stat]=1; bchips.push(`<span class="buffchip up">${b.icon||'+'} ${Math.ceil(b.t)}s</span>`); } }
-  if(G.atkDebuffT>0) bchips.push(`<span class="buffchip down">⚔▼ ${Math.ceil(G.atkDebuffT)}s</span>`);
-  ui.buffrow.innerHTML = bchips.join('');
-  ui.focus.style.width = G.focus+'%';
-  if(G.state==='combat'&&G.focus>=100) ui.smite.classList.add('ready'); else ui.smite.classList.remove('ready');
-  if(G.combo>=2 && G.state==='combat'){ ui.combo.textContent='COMBO ×'+G.combo; ui.combo.style.opacity=1; ui.combo.style.fontSize=(15+Math.min(G.combo,14))+'px'; }
-  else ui.combo.style.opacity=0;
+  drawHUD2D(); // handmade pixel HUD on the overlay canvas
   ui.lowhp.classList.toggle('on', (G.hp/G.maxHp<0.3) && (G.state==='combat'||G.state==='travel'));
-  refreshPotionBtn();
+  if(!((G.state==='combat'||G.state==='travel') && G.potions.length>0)) ui.potionTray.classList.remove('show');
 }
 function refreshPotionBtn(){
   ui.potionCount.textContent = G.potions.length;
@@ -1671,7 +1821,7 @@ function refreshPotionBtn(){
   if(!showIt) ui.potionTray.classList.remove('show');
 }
 let logT=0, heartT=0.6, stepT=0;
-function flashLog(t){ ui.fadelog.textContent=t; ui.fadelog.style.opacity=1; logT=1.4; }
+function flashLog(t){ hudLog=t; logT=1.4; }
 
 // ============================================================ input
 // kill mobile double-tap / pinch zoom (iOS Safari ignores user-scalable=no)
@@ -2335,6 +2485,7 @@ function resize(){
   camera.aspect=w/h; camera.updateProjectionMatrix();
   weaponCam.aspect=w/h; weaponCam.updateProjectionMatrix();
   if(composer) composer.setSize(w,h);
+  sizeHud();
 }
 addEventListener('resize',resize); new ResizeObserver(resize).observe(gameEl); resize();
 
@@ -2355,7 +2506,7 @@ function update(dt){
   if((G.hp/G.maxHp<0.3) && (G.state==='combat'||G.state==='travel')){ heartT-=dt; if(heartT<=0){ audio('heartbeat'); heartT=0.92; } } else heartT=0.6;
   tickBuffs(dt);
   if(G.regen>0 && (G.state==='combat'||G.state==='travel') && G.hp<G.maxHp) G.hp=Math.min(G.maxHp,G.hp+G.regen*dt);
-  if(logT>0){ logT-=dt; if(logT<=0) ui.fadelog.style.opacity=0; }
+  if(logT>0) logT-=dt;
   const playing=(G.state==='travel'||G.state==='combat'||G.state==='reveal'||G.state==='town');
 
   if(G.state==='travel'){ const v=4.6; G.z-=v*dt; G.depth+=v*dt; generateAhead(G.z-Q.dist); if(G.depth>=G.nodeAt) arriveAtNode(); }
