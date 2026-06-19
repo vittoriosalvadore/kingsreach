@@ -1362,49 +1362,60 @@ const WEAPON_DEF = {
   staff:{ icon:'✦', cls:'Mage', atk:[10,18], speed:0.8, color:0x6a4a2a, spell:'bolt' },
   wand:{ icon:'🪄', cls:'Sorcerer', atk:[6,11], speed:1.45, color:0x7a5aa0, spell:'missile' },
   grimoire:{ icon:'📖', cls:'Warlock', atk:[11,18], speed:0.9, color:0x3a2a4a, spell:'nova' },
+  axe:{ icon:'🪓', cls:'Reaver', atk:[12,20], speed:0.74, color:0xb8bcc6 },
+  saber:{ icon:'⚔', cls:'Duelist', atk:[6,10], speed:1.5, color:0xcad0da },
+  scythe:{ icon:'☠', cls:'Reaper', atk:[9,15], speed:1.05, color:0xc0c4cc },
 };
+// ---- pixel-art weapon viewmodels (Doom-style flat sprites, held grip-down, pivot at the grip) ----
+const csshex = n => '#'+((n>>>0)&0xffffff).toString(16).padStart(6,'0');
+function wHaft(P,cx,y0,y1,c1,c2){ for(let y=y0;y<y1;y++)P(cx-1,y,2,1,(y&3)<2?c1:c2); }
+function wBlade(x,W,H,col,o){ const P=PX(x),cx=W>>1,hx=csshex(col),L=shade(hx,1.4),D=shade(hx,0.55),M=shade(hx,1.0);
+  P(cx-1,H-2,2,2,'#c79f44'); wHaft(P,cx,H-2-o.grip,H-2,'#2a1c10','#3a2818');
+  const gy=H-2-o.grip; P(cx-o.guard,gy-2,o.guard*2,2,'#caa44a'); P(cx-o.guard,gy-3,o.guard*2,1,'#8a6a2a');
+  const top=gy-3-o.len; for(let y=gy-3;y>top;y--){ const t=(gy-3-y)/o.len,off=Math.round(Math.sin(t*Math.PI)*(o.curve||0));
+    for(let i=-o.bw;i<=o.bw;i++)P(cx+i+off,y,1,1, i<=-o.bw?D:i>=o.bw?L:(i<0?M:L)); }
+  P(cx+Math.round((o.curve||0)),top-1,1,1,L); P(cx-1+Math.round((o.curve||0)),top,1,2,L); }
+function wAxe(x,W,H,col){ const P=PX(x),cx=W>>1,hx=csshex(col),L=shade(hx,1.4),D=shade(hx,0.55);
+  wHaft(P,cx,4,H-1,'#3a2616','#2a1c10'); P(cx-1,2,2,2,'#caa44a');
+  for(let y=5;y<17;y++){ const t=(y-5)/12,w=Math.round(7*Math.sin(t*Math.PI)); for(let i=0;i<w;i++)P(cx+1+i,y,1,1, i>=w-1?L:(i<1?D:hx)); } }
+function wHammer(x,W,H,col){ const P=PX(x),cx=W>>1,hx=csshex(col),L=shade(hx,1.4),D=shade(hx,0.5);
+  wHaft(P,cx,8,H-1,'#3a2616','#2a1c10');
+  for(let y=4;y<13;y++)for(let i=-5;i<=5;i++)P(cx+i,y,1,1, y===4?L:(i<-3||i>3?D:hx)); P(cx-5,6,2,2,L); }
+function wSpear(x,W,H,col){ const P=PX(x),cx=W>>1,hx=csshex(col),L=shade(hx,1.5),D=shade(hx,0.6);
+  wHaft(P,cx,11,H-1,'#3a2616','#2a1c10');
+  for(let y=2;y<12;y++){ const w=Math.max(0,3-((y-2)/3|0)); for(let i=-w;i<=w;i++)P(cx+i,y,1,1,i<0?hx:(i===0?L:D)); }
+  P(cx,1,1,1,L); P(cx-3,11,7,1,'#caa44a'); }
+function wScythe(x,W,H,col){ const P=PX(x),cx=W>>1,hx=csshex(col),L=shade(hx,1.5),D=shade(hx,0.6);
+  wHaft(P,cx,6,H-1,'#2a1c10','#3a2818'); P(cx-1,5,2,2,'#caa44a');
+  for(let a=0;a<15;a++){ const ang=a/15*1.5,bx=cx+Math.round(Math.sin(ang)*12),by=8-Math.round((1-Math.cos(ang))*9); P(bx,by,1,1,L);P(bx,by+1,1,1,hx);P(bx,by+2,1,1,D); } }
+function wStaff(x,W,H,col){ const P=PX(x),cx=W>>1; wHaft(P,cx,9,H-1,'#3a2616','#2a1c10');
+  const oy=7; for(let i=-3;i<=3;i++)for(let j=-3;j<=3;j++)if(i*i+j*j<=9)P(cx+i,oy+j,1,1,(i*i+j*j<3)?'#bfe6ff':'#4aa0ff'); P(cx-1,oy-1,1,1,'#fff');
+  for(const sx of [-4,4])P(cx+sx,oy+1,1,3,'#caa44a'); }
+function wWand(x,W,H,col){ const P=PX(x),cx=W>>1; for(let y=10;y<H-1;y++)P(cx,y,1,1,(y&1)?'#3a2616':'#2a1c10');
+  const gy=8; for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)if(Math.abs(i)+Math.abs(j)<=2)P(cx+i,gy+j,1,1,(Math.abs(i)+Math.abs(j)<1)?'#e8c0ff':'#c070ff'); P(cx,gy-1,1,1,'#fff'); }
+function wGrim(x,W,H,col){ const P=PX(x),cx=W>>1,cov='#3a2a4a',pg='#e8e2cc',glow='#c070ff';
+  for(let y=H-16;y<H-2;y++)for(let i=-7;i<=7;i++)P(cx+i,y,1,1,(i===0)?'#caa44a':cov);
+  for(let y=H-15;y<H-4;y++)for(let i=-6;i<=6;i++)if(i!==0)P(cx+i,y,1,1,pg);
+  for(let i=0;i<6;i++)P(cx-4+(i%3)*3,H-13+((i/3|0)*4),1,1,glow); }
+const WPN_DRAW = {
+  sword:{w:22,h:40,d:(x,W,H,c)=>wBlade(x,W,H,c,{len:22,bw:2,grip:7,guard:4})},
+  dagger:{w:16,h:30,d:(x,W,H,c)=>wBlade(x,W,H,c,{len:11,bw:1,grip:5,guard:2})},
+  greatsword:{w:28,h:46,d:(x,W,H,c)=>wBlade(x,W,H,c,{len:28,bw:3,grip:9,guard:6})},
+  saber:{w:24,h:40,d:(x,W,H,c)=>wBlade(x,W,H,c,{len:20,bw:2,grip:6,guard:3,curve:4})},
+  axe:{w:22,h:40,d:wAxe}, warhammer:{w:24,h:42,d:wHammer}, spear:{w:16,h:46,d:wSpear},
+  scythe:{w:28,h:42,d:wScythe}, staff:{w:18,h:44,d:wStaff}, wand:{w:14,h:34,d:wWand}, grimoire:{w:24,h:30,d:wGrim},
+};
+const _wpnCache={};
+function weaponTex(type){ if(_wpnCache[type]) return _wpnCache[type];
+  const s=WPN_DRAW[type]||WPN_DRAW.sword; const cv=document.createElement('canvas');cv.width=s.w;cv.height=s.h;const x=cv.getContext('2d');x.imageSmoothingEnabled=false;
+  s.d(x,s.w,s.h, WEAPON_DEF[type].color);
+  const tex=new THREE.CanvasTexture(cv);tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.colorSpace=THREE.SRGBColorSpace;
+  const rec={tex,aspect:s.w/s.h,H:s.h};_wpnCache[type]=rec;return rec; }
 function buildWeaponMesh(type){
-  const g=new THREE.Group(); const col=WEAPON_DEF[type].color;
-  const steel = ()=>mat(col,{r:.3,m:.85,e:0x223044,ei:.35,map:TEX.metal,bump:TEX.metal,bumpScale:.004});
-  const wood  = ()=>mat(0x3a2616,{r:.85,map:TEX.wood,bump:TEX.wood,bumpScale:.01});
-  const wrap  = ()=>mat(0x2a1c10,{r:.9,map:TEX.cloth,bump:TEX.cloth,bumpScale:.01});
-  const gold  = ()=>mat(0x6b5326,{r:.45,m:.6});
-  const M = (geo,m,z,y,x)=>{ const me=new THREE.Mesh(geo,m); me.position.set(x||0,y||0,z); g.add(me); return me; };
-  if(type==='sword'||type==='dagger'||type==='greatsword'){
-    const big=type==='greatsword', sm=type==='dagger';
-    const len = big?2.05 : sm?0.85 : 1.5, w = big?.13 : sm?.06 : .085, th = sm?.045:.05;
-    const bl=M(new THREE.BoxGeometry(w,th,len),steel(),-len/2-.2);
-    M(new THREE.BoxGeometry(w*.3,th*1.05,len*.9),mat(0x161a22,{r:.4,m:.7}),-len/2-.2); // fuller groove
-    M(new THREE.ConeGeometry(w*.55,big?.34:sm?.2:.28,4),steel(),-len-.2).rotation.x=-Math.PI/2;
-    M(new THREE.BoxGeometry(big?.5:sm?.22:.36,.08,.1),gold(),-.15); // crossguard
-    M(new THREE.CylinderGeometry(.05,.05,big?.5:sm?.26:.34,8),wrap(),big?.12:sm?0:.05).rotation.x=Math.PI/2;
-    M(new THREE.SphereGeometry(big?.09:.07,10,8),gold(),big?.4:sm?.14:.22);
-  } else if(type==='spear'){
-    M(new THREE.CylinderGeometry(.035,.04,2.5,8),wood(),-.7).rotation.x=Math.PI/2;
-    M(new THREE.ConeGeometry(.09,.55,7),steel(),-2.1).rotation.x=-Math.PI/2;
-    M(new THREE.CylinderGeometry(.062,.05,.16,8),gold(),-1.8).rotation.x=Math.PI/2;
-    for(const sx of [-1,1]){ const wg=M(new THREE.BoxGeometry(.03,.035,.2),steel(),-1.88,0,sx*.07); wg.rotation.y=sx*.6; }
-  } else if(type==='warhammer'){
-    M(new THREE.CylinderGeometry(.045,.05,1.9,8),wood(),-.45).rotation.x=Math.PI/2;
-    M(new THREE.BoxGeometry(.36,.36,.52),steel(),-1.25);             // head
-    M(new THREE.BoxGeometry(.4,.4,.07),gold(),-1.52);                // striking face plate
-    M(new THREE.ConeGeometry(.1,.34,4),steel(),-1.0).rotation.x=Math.PI/2; // back spike
-    M(new THREE.SphereGeometry(.06,8,6),gold(),.5);
-  } else if(type==='wand'){
-    M(new THREE.CylinderGeometry(.022,.034,.95,8),wood(),-.28).rotation.x=Math.PI/2;
-    for(const sx of [-1,1]){ const pr=M(new THREE.BoxGeometry(.02,.02,.16),gold(),-.78,0,sx*.05); pr.rotation.y=sx*.5; }
-    const gem=M(new THREE.OctahedronGeometry(.1,0),mat(0x2a0f4a,{e:0xc070ff,ei:2.8}),-.82); g.userData.glowOrb=gem;
-  } else if(type==='grimoire'){
-    M(new THREE.BoxGeometry(.52,.07,.64),mat(0x281c38,{r:.55,map:TEX.cloth,bump:TEX.cloth,bumpScale:.012}),-.7,-.02); // spine/back
-    for(const sx of [-1,1]){ const pg=M(new THREE.BoxGeometry(.26,.02,.6),mat(0xe8e2cc,{r:.8,e:0x7a5fff,ei:.45}),-.7,.04,sx*.15); pg.rotation.z=sx*.16; }
-    M(new THREE.BoxGeometry(.05,.03,.62),gold(),-.7,.05);            // central binding
-    const orb=M(new THREE.SphereGeometry(.11,16,12),mat(0x2a0f4a,{e:0xc070ff,ei:2.6}),-.7,.28); g.userData.glowOrb=orb;
-    const ring=M(new THREE.TorusGeometry(.16,.015,8,20),mat(0x2a1050,{e:0xc070ff,ei:1.8}),-.7,.28); ring.rotation.x=Math.PI/2;
-  } else { // staff
-    M(new THREE.CylinderGeometry(.04,.05,1.7,8),wood(),-.5).rotation.x=Math.PI/2;
-    const claw=M(new THREE.TorusGeometry(.18,.03,8,14),gold(),-1.3);
-    const orb=M(new THREE.SphereGeometry(.15,16,12),mat(0x10243a,{e:0x4aa0ff,ei:2.6}),-1.3); g.userData.glowOrb=orb;
-  }
+  const g=new THREE.Group(); const rec=weaponTex(type);
+  const worldH=(rec.H/40)*0.92, Wd=worldH*rec.aspect;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(Wd,worldH), new THREE.MeshBasicMaterial({map:rec.tex,transparent:true,alphaTest:0.4,depthWrite:false,fog:false}));
+  m.position.set(0.04,-0.18,-0.55); m.rotation.z=-0.42; g.add(m); // corner viewmodel: pushed back, leaned, grip low-right
   return g;
 }
 function setWeapon(type){
@@ -2377,7 +2388,8 @@ requestAnimationFrame(frame);
 window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, curBiome, nextBiome,
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, beginReveal, endReveal,
-  usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS };
+  usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
+  setWeapon, WEAPON_DEF };
 console.log('[Kingsreach] booted v3 — town + roster + potions');
 </script>
 </body>
