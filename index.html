@@ -255,6 +255,13 @@
   .cta{ background:#5a4216 !important; }
   .lootbtn.primary, .cta{ color:#fff4d8 !important; }
   #dlgPortrait{ border-radius:0 !important; border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
+  /* live-3D-backdrop overlays (town / shop interior / dialogue / fork): let the scene show THROUGH the pixel chrome */
+  #townOv .npcbtn, #catalogOv #catalogItems > div, #dlgPanel, #forkOv .forkchoice{ background:rgba(16,11,6,.56) !important; }
+  #townOv .cta, #catalogOv .si-buy{ background:rgba(48,34,16,.64) !important; }
+  /* keep the town UI compact so the city breathes instead of a wall of buttons */
+  #townOv .npcbtn{ padding:6px 5px !important; gap:2px !important; }
+  #townOv .npcbtn .ni{ font-size:20px !important; }
+  #townOv .npcbtn .nn{ line-height:1.1 !important; }
 </style>
 </head>
 <body>
