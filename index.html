@@ -237,6 +237,24 @@
     0%{opacity:0;transform:translate(-50%,-50%) scale(.6);}
     16%{opacity:1;transform:translate(-50%,-78%) scale(1.12);}
     100%{opacity:0;transform:translate(-50%,-168%) scale(1);}}
+  /* ===== handmade pixel UI for all pop-up menus ===== */
+  .krfont .overlay, .krfont .overlay *{ font-family:'KR','Courier New',monospace !important; text-transform:uppercase; letter-spacing:0; -webkit-font-smoothing:none; }
+  .overlay{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+  .overlay .title{ font-size:28px !important; letter-spacing:2px !important; color:#d9b96a !important; text-shadow:2px 2px 0 #08070a !important; }
+  .overlay .subtitle{ font-size:14px !important; color:#a99b73 !important; }
+  .overlay .body, #dlgText, .fc-desc, .si-desc, #cardstats, .crow, #cmpline,
+  .lootbtn, .cta, .si-buy, .npcbtn .nn, #townSub, #evBody, #shopGold, #catalogGold, #townGoldRow, #soulCount, #revealAct, #revealSub{
+    font-size:14px !important; line-height:1.5 !important; font-style:normal !important; }
+  .fc-name, .si-name, #cardname, #townName, #evTitle, #revealName, #dlgName{ font-size:21px !important; color:#d9b96a !important; }
+  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, #catalogItems > div, #soulItems > div, #shopItems .shopitem{
+    border-radius:0 !important; box-shadow:none !important; background:#160f08 !important;
+    border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
+  .cta, .lootbtn, .si-buy{
+    border-radius:0 !important; box-shadow:none !important; background:#3a2a12 !important; color:#f0e6cc !important; text-shadow:1px 1px 0 #08070a !important;
+    border:2px solid #08070a !important; border-top-color:#caa44a !important; border-left-color:#caa44a !important; border-right-color:#5a3a10 !important; border-bottom-color:#5a3a10 !important; }
+  .cta{ background:#5a4216 !important; }
+  .lootbtn.primary, .cta{ color:#fff4d8 !important; }
+  #dlgPortrait{ border-radius:0 !important; border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
 </style>
 </head>
 <body>
@@ -411,6 +429,7 @@
   </div>
 </div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
@@ -1711,6 +1730,26 @@ function pfWidth(str, scale, spacing){ scale = scale || 1; if (spacing === undef
   if (str.length === 0) return 0; return (str.length*5 + (str.length-1)*spacing) * scale; }
 function pfShadow(ctx, str, x, y, color, shadowColor, scale, spacing){ scale = scale || 1; if (spacing === undefined) spacing = 1;
   pf(ctx, str, x+scale, y+scale, shadowColor, scale, spacing); return pf(ctx, str, x, y, color, scale, spacing); }
+// compile the SAME handmade glyphs into a real font so the DOM menus use my hand-drawn letterforms (not a webfont)
+function buildKRFont(){
+  try{
+    if(!window.opentype) return;
+    const PX=100, glyphs=[];
+    glyphs.push(new opentype.Glyph({name:'.notdef',unicode:0,advanceWidth:600,path:new opentype.Path()}));
+    const mk=(code,rows)=>{ const path=new opentype.Path();
+      for(let r=0;r<7;r++){ const row=rows[r]; for(let c=0;c<5;c++){ if(row.charAt(c)==='X'){
+        const x0=c*PX,x1=x0+PX,y1=(7-r)*PX,y0=y1-PX; // y up; non-overlapping squares fill under any winding
+        path.moveTo(x0,y1); path.lineTo(x1,y1); path.lineTo(x1,y0); path.lineTo(x0,y0); path.close(); } } }
+      return new opentype.Glyph({name:'u'+code,unicode:code,advanceWidth:600,path}); };
+    for(const ch in FONT){ const code=ch.codePointAt(0); glyphs.push(mk(code,FONT[ch]));
+      if(ch>='A'&&ch<='Z') glyphs.push(mk(ch.toLowerCase().codePointAt(0),FONT[ch])); }
+    const font=new opentype.Font({familyName:'KR',styleName:'Regular',unitsPerEm:700,ascender:700,descender:0,glyphs});
+    const u8=new Uint8Array(font.toArrayBuffer()); let bin=''; for(let i=0;i<u8.length;i++) bin+=String.fromCharCode(u8[i]);
+    const ff=new FontFace('KR','url(data:font/otf;base64,'+btoa(bin)+')');
+    ff.load().then(f=>{ document.fonts.add(f); document.documentElement.classList.add('krfont'); }).catch(e=>console.warn('[KR font] load:',e&&e.message));
+  }catch(e){ console.warn('[KR font] build:',e&&e.message); }
+}
+buildKRFont();
 
 // ============================================================ handmade pixel HUD chrome
 function _shade(hex, k){ var n=parseInt(hex.slice(1),16); var r=(n>>16)&255,g=(n>>8)&255,b=n&255;
