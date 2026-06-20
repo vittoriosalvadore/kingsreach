@@ -7,3 +7,6 @@ __synckcheck.js
 *.log
 .DS_Store
 node_modules/
+# playwright smoke-test artifacts
+tests/test-results/
+tests/playwright-report/
