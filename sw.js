@@ -12,6 +12,8 @@
 // Bump CACHE when the shell changes to retire the old cache.
 const CACHE = 'kingsreach-v1';
 const SHELL = [
+  './vendor/opentype.min.js',
+  './vendor/three/three.module.js',
   './',
   './index.html',
   './manifest.json',

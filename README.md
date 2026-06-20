@@ -11,7 +11,8 @@ Progress is persistent: souls harvested from each run buy permanent upgrades at 
 
 ## Play
 
-Open `index.html` in a browser (needs internet for the Three.js CDN), or visit the hosted page.
+Open `index.html` in a browser, or visit the hosted page. The game is self-contained — no
+internet needed once you have the files.
 
 - **Tap** / Space — Strike
 - **Swipe** / ← → — Dodge
@@ -24,4 +25,5 @@ choices are saved to your device.
 ## Tech
 
 No build step — everything (geometry, textures, audio) is generated procedurally at runtime.
-The only external dependency is Three.js, loaded from a CDN.
+The dependencies (Three.js + opentype.js) are vendored locally in `./vendor`, so the game has
+no external runtime dependencies; re-vendor with `scripts/vendor-libs.sh`.
