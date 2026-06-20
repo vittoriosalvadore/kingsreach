@@ -1608,12 +1608,14 @@ const NAME = {
            sword:['Fang','Edge','Saber','Cleaver','Brand'], dagger:['Stinger','Kris','Shiv','Talon','Needle'],
            greatsword:['Reaver','Slab','Executioner','Wall','Sunderer'], spear:['Lance','Pike','Skewer','Impaler','Reach'],
            warhammer:['Crusher','Maul','Breaker','Anvil','Doom'], staff:['Branch','Scepter','Rod','Channel','Conduit'],
-           wand:['Wand','Spark','Wisp','Splinter','Quill'], grimoire:['Tome','Codex','Grimoire','Folio','Testament'] },
+           wand:['Wand','Spark','Wisp','Splinter','Quill'], grimoire:['Tome','Codex','Grimoire','Folio','Testament'],
+           axe:['Axe','Hatchet','Cleaver','Bardiche','Splitter'], saber:['Saber','Scimitar','Falchion','Sabre','Curve'],
+           scythe:['Scythe','Reaper','Harvest','Crescent','War-Glaive'] },
 };
 function makeWeaponItem(wtype,rarKey,extra={}){
   const r=RAR.find(x=>x.key===rarKey)||RAR[0];
   const it={ slot:'weapon', wtype, rar:r, icon:WEAPON_DEF[wtype].icon,
-    name:`${pick(NAME.weapon.pre)} ${pick(NAME.weapon[wtype])}`,
+    name:`${pick(NAME.weapon.pre)} ${pick(NAME.weapon[wtype]||[WEAPON_DEF[wtype].cls])}`,
     atk: extra.atk!=null?extra.atk:Math.round(rand(2,6)*r.mult), value:0 };
   it.value = Math.round((10+it.atk*3)*r.mult); return it;
 }
