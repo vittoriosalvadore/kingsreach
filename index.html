@@ -508,31 +508,31 @@ const BIOMES = [
   { name:'Haunted Wood',
     fog:0x0c1712, sky:[0x0a1420,0x1a2c2e,0x101a16], hemiSky:0x4a6b6a, hemiGround:0x0a140e,
     sun:0x9fb6c9, sunInt:0.55, ground:'#1a241c', groundDark:'#0d140f',
-    accent:0x6cf09a, prop:'forest', rumor:'The mist eats sound out there. Step soft.' },
+    accent:0x6cf09a, prop:'forest', wx:{col:0x6cf09a,mode:'drift',speed:0.5,sway:1.0,dens:0.8,size:0.12}, rumor:'The mist eats sound out there. Step soft.' },
   { name:'Ruined Keep',
     fog:0x141320, sky:[0x10101e,0x24222e,0x16141c], hemiSky:0x5a5a78, hemiGround:0x14121a,
     sun:0xbfc4e0, sunInt:0.5, ground:'#22222a', groundDark:'#121119',
-    accent:0xffa64d, prop:'castle', rumor:'The dead kings still hold their hall. Mind the big one with the slab-blade.' },
+    accent:0xffa64d, prop:'castle', wx:{col:0xd9b24a,mode:'rise',speed:0.5,sway:0.8,dens:0.7,size:0.12}, rumor:'The dead kings still hold their hall. Mind the big one with the slab-blade.' },
   { name:'Emberdeep',
     fog:0x1a0c08, sky:[0x180704,0x3a140a,0x220a06], hemiSky:0x6b3320, hemiGround:0x1a0805,
     sun:0xff7a3c, sunInt:0.7, ground:'#241410', groundDark:'#140805',
-    accent:0xff5a2a, prop:'dungeon', rumor:'Down where it burns, some things wear stone for skin. Steel wont bite. Break their guard.' },
+    accent:0xff5a2a, prop:'dungeon', wx:{col:0xff7a2a,mode:'rise',speed:1.25,sway:1.4,dens:1.4,size:0.17}, rumor:'Down where it burns, some things wear stone for skin. Steel wont bite. Break their guard.' },
   { name:'Frostfen',
     fog:0x16242e, sky:[0x0e2236,0x36586e,0x1a2e3a], hemiSky:0x9fc8e0, hemiGround:0x20303a,
     sun:0xdfeeff, sunInt:0.85, ground:'#2a3a44', groundDark:'#16242c',
-    accent:0x8fe0ff, prop:'forest', rumor:'The cold keeps the dead fresh. They do not rot. They wait.' },
+    accent:0x8fe0ff, prop:'forest', wx:{col:0xbfe8ff,mode:'drift',speed:0.6,sway:0.7,dens:1.0,size:0.14}, rumor:'The cold keeps the dead fresh. They do not rot. They wait.' },
   { name:'Astral Verge',
     fog:0x140a22, sky:[0x0a061a,0x2a1448,0x140a26], hemiSky:0x9a6ad0, hemiGround:0x1a1030,
     sun:0xd8b0ff, sunInt:0.8, ground:'#241836', groundDark:'#120a1e',
-    accent:0xc070ff, prop:'dungeon', rumor:'The sky is wrong here. Stars fall upward. Do not follow them.' },
+    accent:0xc070ff, prop:'dungeon', wx:{col:0xc9a8ff,mode:'rise',speed:0.7,sway:0.6,dens:1.0,size:0.14}, rumor:'The sky is wrong here. Stars fall upward. Do not follow them.' },
   { name:'Bloodmoon Grove',
     fog:0x200c0e, sky:[0x1a0608,0x4a1418,0x260a0c], hemiSky:0xc05a52, hemiGround:0x200a0a,
     sun:0xff9a86, sunInt:0.78, ground:'#2e1614', groundDark:'#180a0a',
-    accent:0xff4d5e, prop:'forest', rumor:'Under the red moon the trees drink deep. Spill no blood you can spare.' },
+    accent:0xff4d5e, prop:'forest', wx:{col:0xff2e44,mode:'fall',speed:0.5,sway:0.15,dens:0.9,size:0.18}, rumor:'Under the red moon the trees drink deep. Spill no blood you can spare.' },
   { name:'Gilded Sanctum',
     fog:0x1c1810, sky:[0x161009,0x3e3018,0x201808], hemiSky:0xd8c080, hemiGround:0x241c10,
     sun:0xffe6a8, sunInt:0.9, ground:'#33291a', groundDark:'#1c160d',
-    accent:0xffcf5a, prop:'castle', rumor:'Gold buried the faithful here, and greed dug them back up.' },
+    accent:0xffcf5a, prop:'castle', wx:{col:0xffcf5a,mode:'drift',speed:0.45,sway:0.7,dens:1.1,size:0.13}, rumor:'Gold buried the faithful here, and greed dug them back up.' },
 ];
 let biomeOrder = BIOMES.map((_,i)=>i);
 const biomeForAct = act => BIOMES[biomeOrder[(act-1)%BIOMES.length]];
@@ -944,9 +944,19 @@ for(let i=0;i<WEATHER_N;i++){ wPos[i*3]=rand(-22,22); wPos[i*3+1]=rand(0,16); wP
 wGeo.setAttribute('position',new THREE.BufferAttribute(wPos,3).setUsage(THREE.DynamicDrawUsage));
 const wMat = new THREE.PointsMaterial({color:0xc2b8a4,size:.13,map:TEX.glow,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,fog:true});
 const weather = new THREE.Points(wGeo,wMat); weather.frustumCulled=false; scene.add(weather);
-function updateWeather(dt){ if(!weather.visible) return; const drift=Math.sin(performance.now()*.0004)*0.5;
-  for(let i=0;i<WEATHER_N;i++){ let y=wPos[i*3+1]-wVel[i]*dt*1.7*weatherFall; let x=wPos[i*3]+drift*dt+Math.sin(y*.6+i)*dt*0.3;
-    if(y<0){ y=16; x=rand(-22,22); wPos[i*3+2]=rand(-34,8); } wPos[i*3]=x; wPos[i*3+1]=y; }
+function updateWeather(dt){ if(!weather.visible) return; const lat=Math.sin(performance.now()*.0004)*0.5*WX.sway, sp=WX.speed;
+  for(let i=0;i<WEATHER_N;i++){ let x=wPos[i*3], y=wPos[i*3+1], z=wPos[i*3+2]; const vi=wVel[i];
+    if(WX.mode==='rise'){            // embers / star-motes / gilt ash climbing toward the sky
+      y += vi*dt*1.7*sp; x += lat*dt + Math.sin(y*.6+i)*dt*0.5*WX.sway;
+      if(y>16){ y=rand(0,2); x=rand(-22,22); z=rand(-34,8); }
+    } else if(WX.mode==='drift'){    // suspended pollen / frost / gold dust — hangs, swims sideways
+      y -= vi*dt*0.4*sp; x += lat*dt*2.4 + Math.sin(y*.5+i)*dt*0.6*WX.sway;
+      if(y<0){ y=16; x=rand(-22,22); z=rand(-34,8); } else if(x>26){ x=-26; } else if(x<-26){ x=26; }
+    } else {                          // fall — snow / ash / fat blood-drips
+      y -= vi*dt*1.7*sp; x += lat*dt + Math.sin(y*.6+i)*dt*0.3*WX.sway;
+      if(y<0){ y=16; x=rand(-22,22); z=rand(-34,8); }
+    }
+    wPos[i*3]=x; wPos[i*3+1]=y; wPos[i*3+2]=z; }
   wGeo.attributes.position.needsUpdate=true; weather.position.set(G.x,0,G.z);
 }
 
@@ -1032,6 +1042,8 @@ const SEASON = [
   {name:'Winter', wcol:0xeaf2ff, fall:0.9,  snow:true},
 ];
 let todIndex=0, lantMul=1, weatherFall=1;
+// live weather state, driven per-frame off the current biome's wx spec (rise/drift/fall + colour + density)
+const WX = { col:0xc2b8a4, mode:'fall', speed:1, sway:0.4, dens:1, size:0.13 };
 const seasonIdx = () => (G.act-1)%SEASON.length;
 function townWindow(px,py,pz){ const m=mat(0x110a04,{e:0xffc266,ei:2.4}); m.depthWrite=false; m.polygonOffset=true; m.polygonOffsetFactor=-2; m.polygonOffsetUnits=-2;
   const w=new THREE.Mesh(new THREE.PlaneGeometry(.46,.56),m); w.position.set(px,py,pz); w.renderOrder=2; townGroup.add(w); townFlames.push(w); }
@@ -2580,8 +2592,11 @@ function update(dt){
   sun.color.lerp(_lc.set(sunC),dt*1.5); sun.intensity=lerp(sun.intensity,sunI,dt*1.5);
   moteMat.color.lerp(_lc.set(b.accent),dt*1.5); accentLight.color.lerp(_lc.set(b.accent),dt*2);
   mistMat.color.lerp(_lc.set(b.hemiSky),dt*1.5);
-  // seasonal weather tint + fall speed
-  const sea=SEASON[seasonIdx()]; wMat.color.lerp(_lc.set(sea.wcol),dt*1.2); weatherFall=sea.fall;
+  // per-biome weather: air colour + motion (rise/drift/fall), bused off the biome; town keeps its seasonal fall
+  if(inTown){ const sea=SEASON[seasonIdx()]; wMat.color.lerp(_lc.set(sea.wcol),dt*1.2); WX.col=sea.wcol; WX.mode='fall'; WX.speed=sea.fall; WX.sway=0.4; WX.dens=1; WX.size=0.13; }
+  else { const wx=b.wx; wMat.color.lerp(_lc.set(wx.col),dt*1.2); WX.col=wx.col; WX.mode=wx.mode; WX.speed=wx.speed; WX.sway=wx.sway; WX.dens=wx.dens; WX.size=wx.size; }
+  wMat.size += (WX.size-wMat.size)*Math.min(1,dt*2);
+  if(weather.visible) wGeo.setDrawRange(0, Math.min(WEATHER_N, Math.round(Q.motes*1.4*WX.dens)));
   updateWeather(dt); updateMist(dt); updateTelegraph();
   if(G.state==='travel'){ stepT-=dt; if(stepT<=0){ stepT=0.34; burst(G.x+rand(-.45,.45),0.05,G.z-0.5,{color:0x6a6052,n:3,spd:1.3,life:.55,grav:6,up:true}); } }
 
@@ -2680,7 +2695,7 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, beginReveal, endReveal,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
-  setWeapon, WEAPON_DEF };
+  setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
 console.log('[Kingsreach] booted v3 — town + roster + potions');
 </script>
 </body>
