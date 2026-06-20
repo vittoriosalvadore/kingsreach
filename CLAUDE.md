@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Kingsreach is a mobile-first, **single-file** browser roguelite RPG built on Three.js. The
 entire game — geometry, textures, audio, UI, and game logic — lives in `index.html`. There is
-**no build step, no bundler, no package.json, and no `node_modules`**. The only runtime
-dependencies are Three.js (v0.169.0) and opentype.js (v1.3.4), both loaded from CDN, so the
-game needs internet access to run.
+**no build step or bundler for the game** (the only `package.json`/`node_modules` is the test
+harness under `tests/`). The runtime dependencies are Three.js (v0.169.0) and opentype.js
+(v1.3.4); they are **vendored locally in `./vendor`** (loaded via the importmap), so the game is
+fully self-contained and runs offline. To re-vendor (e.g. to bump versions) run
+`scripts/vendor-libs.sh` on a machine with internet.
 
 ## Running & checking
 
