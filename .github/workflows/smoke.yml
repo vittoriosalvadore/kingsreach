@@ -1,0 +1,34 @@
+name: Smoke test
+
+# Boots the real game in headless Chromium and drives it through the core loop
+# (title -> town -> road -> combat -> death) plus the corrupt-save hardening,
+# via the window.__KR debug API. Catches the "silently fails to boot" class of
+# regressions that a syntax check can't.
+
+on:
+  push:
+    branches: [master]
+    paths: ['index.html', 'tests/**', '.github/workflows/smoke.yml']
+  pull_request:
+    paths: ['index.html', 'tests/**', '.github/workflows/smoke.yml']
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 7

@@ -1,0 +1,12 @@
+{
+  "name": "kingsreach-tests",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Headless smoke tests for Kingsreach, driven through the window.__KR debug API.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
