@@ -15,10 +15,12 @@ game needs internet access to run.
 - **Run locally:** `python3 serve.py` serves the directory on `http://0.0.0.0:8000` with
   aggressive no-cache headers (so edits to `index.html` show up on reload). Then open the page
   in a browser. Opening `index.html` directly via `file://` also works.
-- **Syntax-check before committing:** there is no test suite. The convention (see `.gitignore`)
-  is to extract the module script and run `node --check` on it to catch syntax errors, since a
-  broken `index.html` silently fails to boot in the browser. Temp artifacts from this
-  (`__check.mjs`, `__sc.js`, `__synckcheck.js`) are gitignored — never commit them.
+- **Syntax-check before committing:** there is no test suite. Run `node scripts/check-syntax.mjs`
+  — it extracts the inline `<script type="module">` from `index.html` and runs `node --check` on
+  it (error line numbers match `index.html` directly). A broken `index.html` silently fails to
+  boot in the browser, so this is the cheap safety net. The same check runs in CI on every push
+  /PR that touches `index.html` (`.github/workflows/syntax-check.yml`). The temp artifact
+  (`__check.mjs`) it writes is gitignored — never commit it.
 - **Smoke-test in-browser:** the game exposes a debug API on `window.__KR` (defined at the very
   end of the module). It includes `G` (live game state), `step(dt)` to advance one frame, and
   direct handles to most lifecycle functions (`startGame`, `enterTown`, `startFight`,

@@ -1,0 +1,18 @@
+name: Syntax check
+
+on:
+  push:
+    paths: ['index.html', 'scripts/check-syntax.mjs', '.github/workflows/syntax-check.yml']
+  pull_request:
+    paths: ['index.html', 'scripts/check-syntax.mjs', '.github/workflows/syntax-check.yml']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check index.html module
+        run: node scripts/check-syntax.mjs
