@@ -161,7 +161,12 @@ sections. Major sections, in order:
   (`meta.js`: `saveJourney`/`loadJourney`/`clearJourney`, key `kingsreach_journey_v1`, validated like
   `loadMeta`): `enterTown`/`equipItem` save a `journeySnapshot()` (act/gold/gear/potions), and the
   title shows **CONTINUE** when a save exists (`continueJourney`) vs **NEW PILGRIMAGE** (`newPilgrimage`,
-  which clears it). (The narrative/NPC layer is the next pilgrimage step.)
+  which clears it).
+- **Narrative (grim & solemn):** you are a nameless pilgrim charged by the last living King to break
+  the curse; the road wakes powers in you (diegetic frame for Smite/souls). Voice lives in: the title
+  intro, the `NPCS[].lines` + the Grey Herald's charge lore (`talkNPC`), a per-biome `beat` line on
+  each `BIOMES` entry shown in the reveal cutscene (`revealSub`), and a guardian intro `flashLog` on
+  boss spawn. Keep in-game copy English; keep the voice grim/Souls-like when extending it.
 - **State machine:** `G.state` is the single source of truth for what mode the game is in:
   `title`, `town`, `interior` (shop), `travel`, `combat`, `reveal` (act cutscene), `dead`. The
   `update` loop and camera behavior branch on it. Transitions go through the lifecycle functions
