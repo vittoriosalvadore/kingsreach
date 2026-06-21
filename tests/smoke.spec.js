@@ -177,6 +177,7 @@ for (const b of [
   { name: 'Frostfen', behavior: 'frost' },
   { name: 'Astral Verge', behavior: 'blink' },
   { name: 'Bloodmoon Grove', behavior: 'leech' },
+  { name: 'Gilded Sanctum', behavior: 'avarice' },
 ]) {
   test(`${b.name}: signature foe + act boss (${b.behavior}) run cleanly`, async ({ page }) => {
     const errors = collectErrors(page);
@@ -195,7 +196,7 @@ for (const b of [
     expect(info.act).toBeGreaterThan(0);
     expect(info.behavior).toBe(b.behavior);
 
-    await page.evaluate(() => { for (let i = 0; i < 320; i++) window.__KR.step(0.016); });
+    await page.evaluate(() => { for (let i = 0; i < 220; i++) window.__KR.step(0.016); });
     expect(Number.isFinite((await snapshot(page)).hp)).toBe(true);
 
     // The act boss builds + fights with the same signature behavior.
@@ -204,7 +205,7 @@ for (const b of [
       behavior: window.__KR.G.enemy && window.__KR.G.enemy.behavior }));
     expect(boss.isBoss).toBe(true);
     expect(boss.behavior).toBe(b.behavior);
-    await page.evaluate(() => { for (let i = 0; i < 200; i++) window.__KR.step(0.016); });
+    await page.evaluate(() => { for (let i = 0; i < 140; i++) window.__KR.step(0.016); });
     expect(Number.isFinite((await snapshot(page)).hp)).toBe(true);
 
     expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);

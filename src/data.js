@@ -53,7 +53,7 @@ export const BIOMES = [
   { name:'Gilded Sanctum',
     fog:0x1c1810, sky:[0x161009,0x3e3018,0x201808], hemiSky:0xd8c080, hemiGround:0x241c10,
     sun:0xffe6a8, sunInt:0.9, ground:'#33291a', groundDark:'#1c160d',
-    accent:0xffcf5a, prop:'castle', wx:{col:0xffcf5a,mode:'drift',speed:0.45,sway:0.7,dens:1.1,size:0.13}, rumor:'Gold buried the faithful here, and greed dug them back up.', beat:'Greed crowned the last king twice: in gold, and in grave-dirt.' },
+    accent:0xffcf5a, prop:'gilded', wx:{col:0xffcf5a,mode:'drift',speed:0.45,sway:0.7,dens:1.1,size:0.13}, awaken:'kingsgild', rumor:'Gold buried the faithful here, and greed dug them back up.', beat:'Greed crowned the last king twice: in gold, and in grave-dirt.' },
 ];
 
 // ---- time-of-day (town) ----
@@ -88,6 +88,8 @@ export const ENEMY_TYPES = [
   {id:'acolyte', name:'Star-Eaten Acolyte', tag:'blinks — it strikes from nowhere', shape:'float', biome:4, behavior:'blink', hpM:1.1, dmgM:1.25, tel:0.78, col:0x2a1442, standZ:5.0},
   // biome 5 — Bloodmoon Grove: "the trees drink deep; spill no blood you can spare"
   {id:'sanguine', name:'Sanguine Thrall', tag:'drinks your blood to heal — end it fast', shape:'beast', biome:5, behavior:'leech', hpM:1.3, dmgM:1.2, tel:0.82, col:0x3a0a12, standZ:6.0},
+  // biome 6 — Gilded Sanctum: "gold buried the faithful, and greed dug them back up"
+  {id:'gilded', name:'Avarice Wight', tag:'robs your gold — slay it to reclaim the hoard', shape:'caster', biome:6, behavior:'avarice', hpM:1.15, dmgM:1.0, tel:0.7, col:0x6e521a, standZ:5.2},
 ];
 
 // ---- act bosses ----
@@ -100,6 +102,7 @@ export const BOSS_TYPES = {
   Frostfen:{id:'bossFr',name:'The Hoarfrost Warden', tag:'ACT BOSS · frost', shape:'knight', behavior:'frost', hpM:1.15, dmgM:1.0, tel:1.1, col:0x244355, recovery:0.5},
   'Astral Verge':{id:'bossAv',name:'The Verge Warden', tag:'ACT BOSS · blink', shape:'caster', behavior:'blink', hpM:1.1, dmgM:1.05, tel:0.85, col:0x3a1a5e},
   'Bloodmoon Grove':{id:'bossBm',name:'The Crimson Warden', tag:'ACT BOSS · leech', shape:'hulk', behavior:'leech', hpM:1.2, dmgM:1.05, tel:0.9, col:0x4a0a14, recovery:0.45},
+  'Gilded Sanctum':{id:'bossGs',name:'The Gilded Warden', tag:'ACT BOSS · avarice', shape:'knight', behavior:'avarice', hpM:1.2, dmgM:1.0, tel:0.78, col:0x8a6a1e, recovery:0.4},
 };
 
 // ---- weapon definitions ----

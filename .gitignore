@@ -10,3 +10,5 @@ node_modules/
 # playwright smoke-test artifacts
 tests/test-results/
 tests/playwright-report/
+# claude code harness (agent worktrees, transcripts) — never track
+.claude/
