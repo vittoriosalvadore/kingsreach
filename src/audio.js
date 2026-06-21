@@ -86,7 +86,7 @@ export function stopAllMusic(){ if(songTimer){ clearInterval(songTimer); songTim
 //  (pad + chord-tone arpeggio + bass) is built only from the CURRENT chord's
 //  notes, so it can never sound "random"; a hand-written foreground LEAD carries
 //  a clear, memorable melody on top (octave-lifted in the 2nd half for an arc).
-//  ASTRAL Drift (below) stays hand-authored — it was the one that already worked.
+//  Every track (combat = drive/march, chill = soft/calm) is built this way.
 // ============================================================================
 const R16=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null];
 function makeSong(o){
@@ -217,31 +217,15 @@ const EMBER = makeSong({ ms:112, bars:32, mode:'drive', arp:'gentle8', leadV:'ps
   chords:[[0,3,7],[-4,0,3],[-2,2,5],[1,5,8]], bass:[-12,-16,-14,-11],
   lead: seqc(rep(R16,4), rep(A_EMBER,6), rep(R16,4)) });
 
-// ===== ASTRAL — "Astral Drift": ~120 BPM eerie cosmic drift (Astral Verge) =====
-const ASTRAL = (() => {
-  const N = { A2:-12, C3:-9, D3:-7, Eb3:-6, E3:-5, G3:-3, A3:0, B3:2, C4:3, D4:5, Eb4:6, E4:7, F4:8, G4:10, A4:12, B4:14, C5:15, D5:17, Eb5:18, E5:19 };
-  const PAD_ROOTS = [N.A2, N.F4-12, N.D3, N.E3];
-  const PAD_VOICE = [ [N.A3,N.C4,N.E4], [N.F4-12, N.A3, N.C4], [N.D3, N.F4-12, N.A3], [N.E3, N.G3, N.B3] ];
-  const ARP_UP   = [N.A3,N.C4,N.E4,N.A4, N.B4,N.A4,N.E4,N.C4];
-  const ARP_DRIFT= [N.C4,N.E4,N.G4,N.B4, N.A4,N.G4,N.E4,N.D4];
-  const ARP_WT   = [N.C4,N.D4,N.E4,N.Eb4+1, N.G4,N.A4,N.B4,N.A4];
-  const MOTIF = [N.E4,null,null,null, N.D4,null,null,N.C4, null,null,N.B3,null, N.A3,null,null,null, N.Eb4,null,null,null, N.E4,null,null,null, null,null,N.C4,null, N.B3,null,null,null];
-  const STARS = [N.A4,null,null,N.E4, null,null,N.C5,null, null,N.B4,null,null, N.E5,null,null,null];
-  const SONG = { ms:150, len:384, voice(t,s){
-    const bar=(s>>2)&3, region=(s>>5)&3;
-    if(s%16===0){ const ch=PAD_VOICE[region]; pad(NOTE(PAD_ROOTS[region]),t,5.2,0.05); pad(NOTE(ch[0]),t,5.0,0.035); pad(NOTE(ch[1]),t,4.8,0.03); pad(NOTE(ch[2]),t,4.6,0.028); }
-    if(s%32===0) sub(NOTE(PAD_ROOTS[region]-12),t,3.4,0.13);
-    if(s>=64){ if(s%8===0) kick(t,0.40); if(s%8===4) kick(t,0.34); if(s%4===2) hat(t,0.035,0.03); if(s%16===6||s%16===14) hat(t,0.025,0.025); if(s%32===24) snare(t,0.12); }
-    if(s<96){ const st=STARS[s%16]; if(st!=null) bell(NOTE(st),t,1.1,0.05); if(s%24===12) bell(NOTE(N.A4+12),t,1.4,0.035); }
-    if(s>=96 && s<288){ const inBridge=(s>=192 && s<224); const shape=inBridge?ARP_WT:((bar&1)?ARP_DRIFT:ARP_UP); const an=shape[s%8];
-      if(an!=null){ seqNote('sine',NOTE(an),t,0.13,0.055,4); seqNote('sine',NOTE(an+12),t,0.12,0.022,-7); if(s%4===0) bell(NOTE(an+12),t,0.9,0.04); }
-      const m=MOTIF[s%32]; if(m!=null) psaw(NOTE(m),t,0.42,0.05,12); }
-    if(s>=288){ const RES=[N.A3,null,N.C4,null, N.E4,null,null,null, N.A4,null,N.G4,null, N.E4,null,null,null, N.C4,null,null,null, N.B3,null,null,null, N.A3,null,null,null, N.Eb4,null,null,null]; const r=RES[s%32];
-      if(r!=null){ seqNote('sine',NOTE(r),t,0.14,0.05,3); bell(NOTE(r+12),t,1.0,0.035); }
-      if(s===383){ bell(NOTE(N.Eb5),t,2.0,0.04); seqNote('sine',NOTE(N.B4),t,0.5,0.03,6); } }
-  } };
-  return SONG;
-})();
+// ===== ASTRAL — "Astral Drift": eerie, cosmic, floating (Am–F–Dm–E) with a clear arching hook =====
+const A_ASTRAL=[
+  24,null,null,null, 27,null,31,null, 27,null,null,null, 24,null,null,null,
+  24,null,null,null, 27,null,32,null, 27,null,null,null, 24,null,null,null,
+  24,null,null,null, 29,null,32,null, 29,null,null,null, 24,null,null,null,
+  26,null,null,null, 31,null,35,null, 31,null,null,null, 26,null,null,null];
+const ASTRAL = makeSong({ ms:150, bars:24, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', shimmer:true, lift:true,
+  chords:[[0,3,7],[-4,0,3],[5,8,12],[7,11,14]], bass:[-12,-16,-7,-5],
+  lead: seqc(rep(R16,4), rep(A_ASTRAL,5)) });
 
 // ---- public controls (one engine; same names the game + jukebox already call) ----
 export function startMenuMusic(){ playSong('menu', MENU); }
