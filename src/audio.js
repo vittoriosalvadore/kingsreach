@@ -155,23 +155,23 @@ const TOWN = makeSong({ ms:150, bars:24, mode:'soft', arp:'gentle8', leadV:'bell
   chords:[[3,7,10],[-2,2,5],[0,3,7],[-4,0,3]], bass:[-9,-14,-12,-16],
   lead: seqc(rep(R16,4), rep(A_TOWN,5)) });
 
-// ===== BATTLE — "The Road": driving synthwave banger (Am–F–C–G) =====
+// ===== BATTLE — "The Road": driving synthwave, clear anthemic hook (Am–F–C–G) =====
 const A_BATTLE=[
-  19,null,null,null, 24,null,22,null, 19,null,null,null, 15,null,null,null,
-  20,null,null,null, 24,null,null,null, 22,null,20,null, 15,null,null,null,
-  22,null,null,null, 19,null,22,null, 27,null,26,null, 22,null,null,null,
-  26,null,24,null, 22,null,null,null, 17,null,null,null, 19,null,null,null];
-const BATTLE = makeSong({ ms:116, bars:32, mode:'drive', arp:'drive16', leadV:'psaw', shimmer:true, lift:true,
+  19,null,null,null, 24,null,22,null, 24,null,null,null, 27,null,null,null,
+  20,null,null,null, 24,null,22,null, 24,null,null,null, 27,null,null,null,
+  19,null,null,null, 22,null,24,null, 27,null,null,null, 31,null,null,null,
+  29,null,null,null, 26,null,22,null, 17,null,null,null, 22,null,null,null];
+const BATTLE = makeSong({ ms:116, bars:32, mode:'drive', arp:'gentle8', leadV:'psaw', shimmer:true, lift:true,
   chords:[[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]], bass:[-12,-16,-9,-14],
   lead: seqc(rep(R16,4), rep(A_BATTLE,6), rep(R16,4)) });
 
-// ===== BOSS — "The Guardian": dark, badass synthwave (Dm–Bb–C–A, harmonic-minor V) =====
+// ===== BOSS — "The Guardian": dark, badass, a memorable menacing riff (Dm–Bb–C–A) =====
 const A_BOSS=[
   17,null,null,null, 24,null,20,null, 17,null,null,null, 19,null,null,null,
-  17,null,null,null, 20,null,null,null, 17,null,13,null, 8,null,null,null,
+  17,null,null,null, 20,null,17,null, 13,null,null,null, 8,null,null,null,
   19,null,null,null, 22,null,19,null, 15,null,null,null, 10,null,null,null,
-  19,null,null,null, 16,null,19,null, 24,null,16,null, 19,null,null,null];
-const BOSS = makeSong({ ms:125, bars:28, mode:'march', arp:'pluck16', leadV:'psaw', lift:true,
+  24,null,null,null, 19,null,16,null, 19,null,null,null, 24,null,null,null];
+const BOSS = makeSong({ ms:125, bars:28, mode:'march', arp:'gentle8', leadV:'psaw', lift:true,
   chords:[[5,8,12],[1,5,8],[3,7,10],[0,4,7]], bass:[-7,-11,-9,-12],
   lead: seqc(rep(R16,4), rep(A_BOSS,6)) });
 
@@ -185,13 +185,13 @@ const LAMENT = makeSong({ ms:220, bars:16, mode:'calm', softKick:false, arp:'bel
   chords:[[0,3,7],[-4,0,3],[3,7,10],[-5,-1,2]], bass:[-12,-16,-9,-17],
   lead: rep(A_LAMENT,4) });
 
-// ===== FOREST — "Forest Hunt": mid-tempo synthwave woodland prowl (Dm–C–G–Dm) =====
+// ===== FOREST — "Forest Hunt": mid-tempo synthwave prowl, clear circling hook (Dm–C–G–Dm) =====
 const A_FOREST=[
-  17,null,20,null, 24,null,20,null, 17,null,19,null, 20,null,null,null,
-  19,null,22,null, 27,null,22,null, 19,null,17,null, 15,null,null,null,
-  17,null,22,null, 26,null,22,null, 17,null,19,null, 17,null,null,null,
-  20,null,19,null, 17,null,12,null, 17,null,20,null, 24,null,null,null];
-const FOREST = makeSong({ ms:132, bars:28, mode:'drive', arp:'pluck16', leadV:'square', lift:true,
+  17,null,null,null, 20,null,24,null, 20,null,null,null, 17,null,null,null,
+  19,null,null,null, 22,null,27,null, 22,null,null,null, 19,null,null,null,
+  17,null,null,null, 22,null,26,null, 29,null,null,null, 26,null,null,null,
+  24,null,null,null, 20,null,17,null, 12,null,null,null, 17,null,null,null];
+const FOREST = makeSong({ ms:132, bars:28, mode:'drive', arp:'gentle8', leadV:'square', lift:true,
   chords:[[5,8,12],[3,7,10],[-2,2,5],[5,8,12]], bass:[-7,-9,-14,-7],
   lead: seqc(rep(R16,4), rep(A_FOREST,6)) });
 
@@ -207,13 +207,13 @@ const MORNING = makeSong({ ms:132, bars:28, mode:'soft', arp:'gentle8', leadV:'s
   chords:[[3,7,10],[0,3,7],[-4,0,3],[-2,2,5]], bass:[-9,-12,-16,-14],
   lead: rep(A_MORNING,7) });
 
-// ===== EMBER — "Ember March": molten driving synthwave (Am–F–G–Bb, Phrygian bite) =====
+// ===== EMBER — "Ember March": molten driving synthwave, descending hook w/ b2 bite (Am–F–G–Bb) =====
 const A_EMBER=[
-  24,null,null,null, 22,null,20,null, 19,null,null,null, 12,null,null,null,
-  24,null,null,null, 20,null,null,null, 19,null,20,null, 12,null,null,null,
-  22,null,null,null, 17,null,22,null, 26,null,null,null, 29,null,null,null,
-  25,null,24,null, 20,null,null,null, 13,null,12,null, null,null,null,null];
-const EMBER = makeSong({ ms:112, bars:32, mode:'drive', arp:'drive16', leadV:'psaw', lift:true,
+  24,null,null,null, 22,null,19,null, 24,null,null,null, 27,null,null,null,
+  24,null,null,null, 20,null,19,null, 20,null,null,null, 24,null,null,null,
+  22,null,null,null, 29,null,26,null, 22,null,null,null, 17,null,null,null,
+  25,null,null,null, 24,null,20,null, 17,null,null,null, 13,null,null,null];
+const EMBER = makeSong({ ms:112, bars:32, mode:'drive', arp:'gentle8', leadV:'psaw', lift:true,
   chords:[[0,3,7],[-4,0,3],[-2,2,5],[1,5,8]], bass:[-12,-16,-14,-11],
   lead: seqc(rep(R16,4), rep(A_EMBER,6), rep(R16,4)) });
 
