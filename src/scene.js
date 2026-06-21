@@ -62,3 +62,13 @@ export const townLight = new THREE.PointLight(0xffc070, 0, 50, 1.6); townLight.p
 export const townFill = new THREE.PointLight(0xffe2b4, 0, 40, 1.6); townFill.position.set(0,5,3); scene.add(townFill);
 weaponScene.add(new THREE.HemisphereLight(0xbfcfff,0x20140a,1.1));
 export const wkey = new THREE.DirectionalLight(0xffe6c0,1.4); wkey.position.set(-1,2,2); weaponScene.add(wkey);
+
+// ---- shared material/colour primitives (used by props, sprites, enemies, viewmodels, interiors) ----
+export function mat(col,opts={}){
+  const m=new THREE.MeshStandardMaterial({color:col,roughness:opts.r??.95,metalness:opts.m??0,emissive:opts.e??0x000000,emissiveIntensity:opts.ei??1});
+  if(opts.map) m.map=opts.map;
+  if(opts.bump){ m.bumpMap=opts.bump; m.bumpScale=opts.bumpScale??0.02; }
+  if(opts.emap) m.emissiveMap=opts.emap;
+  return m;
+}
+export const csshex = n => '#'+((n>>>0)&0xffffff).toString(16).padStart(6,'0');
