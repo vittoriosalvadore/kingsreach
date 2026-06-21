@@ -28,6 +28,60 @@ export function startTownMusic(){ if(musicTimer||!AC) return; musicStep=0;
     musicStep++;
   }, 560); }
 export function stopTownMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
+// ---- driving battle / boss music (Megabonk-style chiptune: kick+bass pulse,
+//      arpeggiated lead, catchy looping hook). All synthesized; kept below SFX. ----
+function kick(t,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(45,t+0.11);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.18); }
+function hat(t,vol,dur){ if(!AC)return; const buf=AC.createBuffer(1,(AC.sampleRate*dur)|0,AC.sampleRate); const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1); const s=AC.createBufferSource(); s.buffer=buf;
+  const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=7000; const g=AC.createGain();
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); s.stop(t+dur+0.02); }
+function snare(t,vol){ if(!AC)return; const buf=AC.createBuffer(1,(AC.sampleRate*0.18)|0,AC.sampleRate); const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1); const s=AC.createBufferSource(); s.buffer=buf;
+  const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1900; f.Q.value=0.7; const g=AC.createGain();
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.17);
+  s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); s.stop(t+0.2); }
+function seqNote(type,f,t,dur,vol,detune){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t); if(detune)o.detune.value=detune;
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.012); g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02); }
+const NOTE=n=>110*Math.pow(2,n/12);   // semitone offset from A2
+// battle: A natural-minor groove, 16-step loop (~150 BPM at 0.1s/step)
+let battleTimer=null, battleStep=0;
+const B_ARP=[0,7,12,15, 0,7,12,19, -2,5,10,14, 3,10,15,17];   // climbing minor arp hook
+const B_BASS=[0,0,7,7, 0,0,5,5, -2,-2,3,3, 3,3,7,10];
+export function startBattleMusic(){ if(battleTimer||!AC) return; stopTownMusic(); stopBossMusic(); battleStep=0;
+  battleTimer=setInterval(()=>{ const t=AC.currentTime+0.02, s=battleStep%16;
+    if(s%4===0) kick(t,0.5);                                   // four-on-the-floor pulse
+    if(s===6||s%8===4) snare(t,0.16);                          // backbeat snare
+    hat(t, s%2?0.05:0.03, 0.03);                               // driving offbeat hats
+    seqNote('triangle', NOTE(B_BASS[s]-12), t, 0.11, 0.14);    // punchy bassline
+    const a=B_ARP[s]; seqNote('square', NOTE(a+12), t, 0.13, 0.05, 6);   // arp lead (slightly detuned)
+    if(s===15) seqNote('sawtooth', NOTE(0), t, 0.4, 0.05);     // turnaround sweep
+    battleStep++;
+  }, 100); }
+export function stopBattleMusic(){ if(battleTimer){ clearInterval(battleTimer); battleTimer=null; } }
+// boss: heavier & tenser — slower (~128 BPM), minor-second bite, growling saw bass
+let bossTimer=null, bossStep=0;
+const BO_LEAD=[0,null,3,0, -1,null,3,5, 7,null,5,3, 1,3,1,null];   // tense, sparse phrase
+const BO_BASS=[0,0,0,1, 0,0,0,-1, 0,0,3,3, 1,1,0,0];
+export function startBossMusic(){ if(bossTimer||!AC) return; stopTownMusic(); stopBattleMusic(); bossStep=0;
+  bossTimer=setInterval(()=>{ const t=AC.currentTime+0.02, s=bossStep%16;
+    if(s%2===0) kick(t,0.55);                                  // relentless heavy kick
+    if(s%8===4) snare(t,0.2);                                  // half-time snare
+    hat(t, s%4===2?0.04:0.02, 0.025);
+    seqNote('sawtooth', NOTE(BO_BASS[s]-24), t, 0.14, 0.13);   // growling sub bass
+    seqNote('sawtooth', NOTE(BO_BASS[s]-12), t, 0.12, 0.05, 4);// dirty layered bass
+    const m=BO_LEAD[s]; if(m!=null) seqNote('square', NOTE(m+12), t, 0.16, 0.055, -8);   // ominous lead
+    if(s===0||s===8) seqNote('sine', NOTE(-24), t, 0.5, 0.09); // toll on the downbeat
+    bossStep++;
+  }, 117); }
+export function stopBossMusic(){ if(bossTimer){ clearInterval(bossTimer); bossTimer=null; } }
+// stop every music loop (handy on title/death/state resets)
+export function stopAllMusic(){ stopTownMusic(); stopBattleMusic(); stopBossMusic(); }
 // ---- per-shop ambience (forge, bubbling, chimes, scrapes) ----
 let shopTimer=null;
 export function startShopAmbience(type){ stopShopAmbience(); if(!AC) return; let s=0;

@@ -466,7 +466,7 @@ import { $, clamp, lerp, rand, randi, pick, chance, shuffle, easeOut, easeIn, RO
 import { QPRESETS, BPRESETS, SOUL_UPG, BIOMES, TOD, SEASON, ENEMY_TYPES, BOSS_TYPES, WEAPON_DEF, RAR, SLOTS } from './src/data.js';
 import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc, tickBuffs } from './src/state.js';
 import { META, saveMeta, saveJourney, loadJourney, clearJourney } from './src/meta.js';
-import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience } from './src/audio.js';
+import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience, startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, stopAllMusic } from './src/audio.js';
 import { Q, B, bootAA, RETRO_W, gameEl, canvas, renderer, scene, camera, weaponScene, weaponCam,
   skyUniforms, sky, hemi, sun, accentLight, enemyKey, enemyRim, townLight, townFill, wkey, mat, csshex } from './src/scene.js';
 import { TEX } from './src/textures.js';
@@ -1428,7 +1428,8 @@ function spawnEnemy(kind='normal'){
     charging:0, _hitThisCharge:false, _mode:'hex', dead:false, bob:rand(0,6), spawnIn:0.42, bleed:0, bleedT:0, _bleedTick:0 };
   ui.ename.textContent=G.enemy.name; ui.ename.style.color = boss?'#ff8a5a':elite?'#ffcf6a':'#e9d6d2';
   ui.etag.textContent=G.enemy.tag; ui.eplate.style.opacity=1; ui.ehp.style.width='100%';
-  if(boss){ audio('boss'); flashLog('A guardian bars the road — '+t.name); }
+  if(boss){ audio('boss'); flashLog('A guardian bars the road — '+t.name); startBossMusic(); }
+  else startBattleMusic();
   G.state='combat';
 }
 const bolts=[];
@@ -1508,6 +1509,7 @@ function killEnemy(){
     // take the guardian's power — the road's curse waking further in you
     const aw=curBiome().awaken;
     if(aw && POWERS[aw] && !G.awakenings.includes(aw)){ G.awakenings.push(aw); flashLog('You take the Guardian’s power — '+POWERS[aw].name); persistJourney(); }
+    startBattleMusic();   // guardian down — back to the road theme through loot/reveal
   }
   const g=G.eGrp; const t0=performance.now();
   if(g){ const gl=G.enemy.glow; const mul=boss?2.2:1;
@@ -1813,6 +1815,7 @@ function enterTown(){
     el.addEventListener('pointerdown',e=>{e.preventDefault(); if(npc.shop) enterShop(npc); else talkNPC(npc);}); row.appendChild(el); });
   buildPerfRow($('townPerf')); buildBrightRow($('townBright'));
   $('townSouls').textContent = '⟡ '+META.souls+' souls';
+  stopBattleMusic(); stopBossMusic();   // leave the road theme behind at the waystation
   show('townOv'); audio('townbell'); startTownMusic(); refreshHUD();
   persistJourney();   // the waystation records your pilgrimage
 }
@@ -1887,7 +1890,7 @@ function takeTheRoad(){
   G.state='travel'; G.actNodes=0; G.firstNode=true; G.lastWasFork=false; G.nodeAt=G.depth+rand(6,9);
   for(let i=PROP_POOL.length-1;i>=0;i--){ if(PROP_POOL[i].grp.position.z < G.z){ disposeProp(PROP_POOL[i]); PROP_POOL.splice(i,1); } }
   frontier=G.z; generateAhead(G.z-Q.dist);
-  stopTownMusic(); flashLog('You take the road'); refreshHUD();
+  stopTownMusic(); startBattleMusic(); flashLog('You take the road'); refreshHUD();
 }
 bindBtn($('takeRoadBtn'), takeTheRoad);
 
@@ -2000,7 +2003,7 @@ bindBtn($('continueBtn'),continueJourney);
 bindBtn($('restartBtn'),reviveAtWaystation);
 function die(){
   if(G.state==='dead') return;
-  G.state='dead'; stopTownMusic();
+  G.state='dead'; stopAllMusic();
   // The curse denies true death: banked souls reward the dead you laid to rest this
   // leg (delta since the last fall, so it can't be farmed by dying repeatedly).
   const dk=Math.max(0,G.kills-(G._awardKills||0)), dd=Math.max(0,G.depth-(G._awardDepth||0));
@@ -2191,6 +2194,7 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, startBoss, openLoot, beginReveal, endReveal,
   die, reviveAtWaystation, persistJourney, continueJourney, newPilgrimage, loadJourney, clearJourney,
   onPower, activePower, POWERS,
+  startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, stopAllMusic, startTownMusic, stopTownMusic,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
   setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
 console.log('[Kingsreach] booted v3 — town + roster + potions');
