@@ -12,3 +12,5 @@ export const easeOut = t=>1-Math.pow(1-t,2);
 export const easeIn = t=>t*t;
 export const ROMAN=['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV'];
 export const toRoman = n=>ROMAN[n]||('#'+n);
+// hex (number or '#rrggbb') -> shaded 'rgb(...)' string; f<1 darkens, f>1 lightens
+export const shade = (hex,f)=>{ const c=(''+hex).replace('#',''); const r=clamp(Math.round(parseInt(c.slice(0,2),16)*f),0,255), g=clamp(Math.round(parseInt(c.slice(2,4),16)*f),0,255), b=clamp(Math.round(parseInt(c.slice(4,6),16)*f),0,255); return 'rgb('+r+','+g+','+b+')'; };
