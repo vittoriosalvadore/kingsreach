@@ -65,6 +65,9 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   Imports only THREE + leaf modules (`helpers`, `data`); creates the GL objects on load. The big
   reconfig functions (`applyQuality`/`applyBright`) stay in `index.html` and mutate the imported
   `Q`/`B` via `Object.assign` (so don't reintroduce a separate `QKEY`/`BKEY` — use `Q.key`/`B.key`).
+- **`src/textures.js`** — `TEX`, the shared procedural canvas textures (grunge/cloth/scale/bark/
+  stone/metal/char/ember/wisp/wood/glow/mist/skin/hair) generated once and reused by every
+  material, sprite, and FX. Imports THREE + `renderer` (for max anisotropy) only.
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
