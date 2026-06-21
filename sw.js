@@ -24,6 +24,7 @@ const SHELL = [
   './src/fx.js',
   './src/gear.js',
   './src/props.js',
+  './src/villagers.js',
   './',
   './index.html',
   './manifest.json',

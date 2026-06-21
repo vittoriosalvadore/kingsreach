@@ -44,7 +44,7 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
 `index.html` into ES modules under `src/`, imported at the top of the inline `<script type="module">`:
 
 - **`src/helpers.js`** — `$`, `clamp`, `lerp`, `rand`, `randi`, `pick`, `chance`, `shuffle`,
-  `easeOut`, `easeIn`, `ROMAN`, `toRoman`.
+  `easeOut`, `easeIn`, `ROMAN`, `toRoman`, `shade` (hex→shaded `rgb()` string for the pixel art).
 - **`src/data.js`** — pure data tables with no game-state/Three.js deps: `QPRESETS`, `BPRESETS`,
   `SOUL_UPG`, `BIOMES`, `TOD`, `SEASON`, `ENEMY_TYPES`, `BOSS_TYPES`, `WEAPON_DEF`, `RAR`, `SLOTS`.
   The behavior that reads these (`makeGear`, `pickEnemyType`, `applyQuality`, …) stays in `index.html`.
@@ -82,6 +82,11 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   drawing — imports only THREE + helpers. Exports `PROP_FN` (used by `generateAhead`) and `PX`, the
   pixel-plot helper reused by the enemy/villager sprites. The world streamer (`generateAhead`/
   `buildLandmark`/`PROP_POOL`) stays in `index.html` since it needs `mat`/`curBiome`.
+- **`src/villagers.js`** — the recolorable hand-pixel villager figure builders (the `drawVillager*`
+  archetypes, `villagerSprite`, `VILLAGER_PAL`, `CROWD_POOL`, `buildNpcFig` for shop NPCs). Pure
+  drawing: THREE + `mat` (scene) + `TEX` (textures) + `PX` (props) + helpers. The town-construction
+  code that *places* them (`townCrowdFig`, the `buildTownVillage` IIFE) stays in `index.html`
+  because it wires into `townGroup`/`townHouse`/`townCrowd`.
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
