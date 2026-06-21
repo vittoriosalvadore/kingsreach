@@ -17,6 +17,7 @@ const SHELL = [
   './src/helpers.js',
   './src/data.js',
   './src/state.js',
+  './src/meta.js',
   './',
   './index.html',
   './manifest.json',
