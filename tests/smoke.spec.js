@@ -165,6 +165,40 @@ test('loot, potions, boss fight, and act transition run cleanly', async ({ page 
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });
 
+test('Frostfen: signature revenant, Chill, and act boss run cleanly', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html');
+  await waitForBoot(page);
+  await page.evaluate(() => window.__KR.startGame());
+
+  // Jump to whichever act is the Frostfen biome, then spawn its signature foe.
+  const info = await page.evaluate(() => {
+    const KR = window.__KR; let act = -1;
+    for (let a = 1; a <= 7; a++) { KR.G.act = a; if (KR.curBiome().name === 'Frostfen') { act = a; break; } }
+    if (act < 0) return { act };
+    KR.G.state = 'travel'; KR.spawnEnemy('normal');
+    return { act, behavior: KR.G.enemy && KR.G.enemy.behavior, state: KR.G.state };
+  });
+  expect(info.act).toBeGreaterThan(0);
+  expect(info.behavior).toBe('frost');     // the Frostbound Revenant uses the new behavior
+
+  // Run combat without dodging — the frost burst should land and apply Chill.
+  await page.evaluate(() => { for (let i = 0; i < 320; i++) window.__KR.step(0.016); });
+  let g = await page.evaluate(() => ({ hp: window.__KR.G.hp }));
+  expect(Number.isFinite(g.hp)).toBe(true);
+
+  // The Frostfen act boss (Hoarfrost Warden) builds + fights without error.
+  await page.evaluate(() => { const KR = window.__KR; KR.G.hp = KR.G.maxHp; KR.spawnEnemy('boss'); });
+  const boss = await page.evaluate(() => ({ isBoss: !!(window.__KR.G.enemy && window.__KR.G.enemy.boss),
+    behavior: window.__KR.G.enemy && window.__KR.G.enemy.behavior }));
+  expect(boss.isBoss).toBe(true);
+  expect(boss.behavior).toBe('frost');
+  await page.evaluate(() => { for (let i = 0; i < 200; i++) window.__KR.step(0.016); });
+  expect(Number.isFinite((await snapshot(page)).hp)).toBe(true);
+
+  expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
+});
+
 test('a corrupt save never yields NaN stats', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/index.html');

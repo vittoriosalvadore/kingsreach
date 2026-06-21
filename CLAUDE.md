@@ -92,6 +92,25 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
 avoid circular imports — most of the remaining code is tightly coupled to the shared mutable `G`.
 
+## Adding biome content
+
+Acts cycle through the 7 `BIOMES` (a shuffled order; act 1 is always biome 0). To give a biome
+its own identity:
+
+- **Enemy:** add an entry to `ENEMY_TYPES` (`src/data.js`) with `biome:<index in BIOMES>` —
+  `pickEnemyType` filters the roster by the current biome index, falling back to the whole roster
+  if none match. New attack patterns are a new entry in the `BEHAVIOR` dispatch table in
+  `index.html` (signature `(e,g,dt,tz)`; drive `e.windup`/`e.atkT`, call `enemyHit`/FX). Player
+  debuffs follow the `applyHex`/`applyChill` model (check `G.iframes` → `perfectDodge` first).
+- **Sprite:** `t.shape` is switched in two places in `index.html` (the 2.5D billboard draw and
+  `buildEnemyMesh`); alias a new shape onto an existing branch for a quick recolor, or add a branch.
+- **Boss:** add to `BOSS_TYPES` keyed by **biome name** (`bossType` prefers name → prop → forest).
+- **Props:** add a `PROP_FN.<key>` builder in `src/props.js` and a `buildLandmark` branch in
+  `index.html`, then point the biome's `prop` field at the new key.
+
+Frostfen is the worked example (Frostbound Revenant + `frost` behavior + Chill debuff + Hoarfrost
+Warden boss + ice props). The smoke suite forces the Frostfen act to exercise it.
+
 ## Code layout inside `index.html`
 
 The file is `<head>` (CSS in `:root` custom props + the DOM overlays) followed by one

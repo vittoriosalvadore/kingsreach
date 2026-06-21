@@ -41,7 +41,7 @@ export const BIOMES = [
   { name:'Frostfen',
     fog:0x16242e, sky:[0x0e2236,0x36586e,0x1a2e3a], hemiSky:0x9fc8e0, hemiGround:0x20303a,
     sun:0xdfeeff, sunInt:0.85, ground:'#2a3a44', groundDark:'#16242c',
-    accent:0x8fe0ff, prop:'forest', wx:{col:0xbfe8ff,mode:'drift',speed:0.6,sway:0.7,dens:1.0,size:0.14}, rumor:'The cold keeps the dead fresh. They do not rot. They wait.' },
+    accent:0x8fe0ff, prop:'frostfen', wx:{col:0xbfe8ff,mode:'drift',speed:0.6,sway:0.7,dens:1.0,size:0.14}, rumor:'The cold keeps the dead fresh. They do not rot. They wait.' },
   { name:'Astral Verge',
     fog:0x140a22, sky:[0x0a061a,0x2a1448,0x140a26], hemiSky:0x9a6ad0, hemiGround:0x1a1030,
     sun:0xd8b0ff, sunInt:0.8, ground:'#241836', groundDark:'#120a1e',
@@ -82,13 +82,18 @@ export const ENEMY_TYPES = [
   {id:'fiend',   name:'Ember Fiend',  tag:'charging rush',    shape:'beast',    biome:2, behavior:'charger',hpM:1.0, dmgM:1.3, tel:0.6,  col:0x2a100a, standZ:6.5},
   {id:'hulk',    name:'Cinder Hulk',  tag:'armored · Smite it',shape:'hulk',    biome:2, behavior:'armored',hpM:2.1, dmgM:1.5, tel:0.9,  col:0x2a1810, armored:true, recovery:0.6},
   {id:'wisp',    name:'Wisp Swarm',   tag:'fast triple-jab',  shape:'wisp',     biome:2, behavior:'flurry', hpM:0.6, dmgM:0.42,tel:0.3,  col:0x3a1a0a, hits:3, gap:0.14},
+  // biome 3 — Frostfen: "the cold keeps the dead fresh; they wait"
+  {id:'revenant',name:'Frostbound Revenant', tag:'frost burst · dodge the chill', shape:'revenant', biome:3, behavior:'frost', hpM:1.5, dmgM:1.35, tel:1.05, col:0x1c3340, standZ:4.6},
 ];
 
-// ---- act bosses (keyed by biome prop) ----
+// ---- act bosses ----
+// bossType() prefers a biome-NAME key (so each biome can have its own boss),
+// then falls back to the biome PROP key, then forest.
 export const BOSS_TYPES = {
   forest:  {id:'bossF', name:'The Hollow King',   tag:'ACT BOSS', shape:'knight', behavior:'heavy',   hpM:1.0, dmgM:1.0, tel:1.05, col:0x12231a, recovery:0.55},
   castle:  {id:'bossC', name:'The Barrow Lord',   tag:'ACT BOSS', shape:'hulk',   behavior:'heavy',   hpM:1.1, dmgM:1.05,tel:0.95, col:0x24242e, recovery:0.5},
   dungeon: {id:'bossD', name:'The Cinder Tyrant', tag:'ACT BOSS', shape:'hulk',   behavior:'charger', hpM:1.2, dmgM:1.1, tel:0.85, col:0x2a1810, recovery:0.5, standZ:6.5},
+  Frostfen:{id:'bossFr',name:'The Hoarfrost Warden', tag:'ACT BOSS · frost', shape:'knight', behavior:'frost', hpM:1.15, dmgM:1.0, tel:1.1, col:0x244355, recovery:0.5},
 };
 
 // ---- weapon definitions ----

@@ -578,6 +578,11 @@ function buildLandmark(b){
   } else if(b.prop==='dungeon'){
     const mt=new THREE.Mesh(new THREE.ConeGeometry(13,18,9),mat(0x140805,{r:1,map:TEX.char,bump:TEX.char,bumpScale:.08}));mt.position.y=9;g.add(mt);
     const glow=new THREE.Mesh(new THREE.SphereGeometry(3.2,10,8),mat(0x2a0800,{e:0xff5a1e,ei:2.6}));glow.position.y=16.5;g.add(glow);g.userData.flame=glow;
+  } else if(b.prop==='frostfen'){
+    // a great frozen obelisk crowned with rime-light
+    const sh=new THREE.Mesh(new THREE.ConeGeometry(3.4,20,6),mat(0x2a3e48,{r:.6,m:.2,map:TEX.stone,bump:TEX.stone,bumpScale:.04}));sh.position.y=10;g.add(sh);
+    for(const sx of [-3.2,3.4]){ const ic=new THREE.Mesh(new THREE.ConeGeometry(1.0,7,5),mat(0x8fb8d0,{r:.4,e:0x6aa0c0,ei:.5}));ic.position.set(sx,3.5,0);g.add(ic); }
+    const crown=new THREE.Mesh(new THREE.SphereGeometry(2.0,10,8),mat(0x0a2230,{e:0x9fe8ff,ei:2.2}));crown.position.y=19;g.add(crown);g.userData.flame=crown;
   } else {
     const tr=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.8,20,7),mat(0x14110c,{r:1,map:TEX.bark,bump:TEX.bark,bumpScale:.03}));tr.position.y=10;g.add(tr);
     const c=new THREE.Mesh(new THREE.SphereGeometry(5.5,7,6),mat(0x16241a,{r:1}));c.position.y=17;c.scale.y=.7;g.add(c);
@@ -798,8 +803,8 @@ function drawEnemy(x,t,boss,glow){
       if(caster){ // staff + skull
         P(cx+13,14,3,52,'#5a4326'); P(cx+11,10,7,7,'#e8e2d0'); P(cx+12,12,2,2,eyeDk); P(cx+15,12,2,2,eyeDk); }
     }
-  } else if(shape==='float'){            // wraith — tattered ghost
-    const rc=0x6a6f86;
+  } else if(shape==='float'||shape==='revenant'){   // wraith / frost revenant — tattered ghost
+    const rc = shape==='revenant' ? 0x9fc8e0 : 0x6a6f86;
     for(let y=18;y<=86;y++){ const w=16+Math.sin(y*0.2)*3+(y>70?(y-70)*0.5:0); const a=y>78?(86-y)/8:1;
       x.globalAlpha=0.55*a; P(cx-w/2,y,w,1,(y%5<2)?_mix(rc,0x000000,.4):_css(rc)); }
     x.globalAlpha=1;
@@ -896,7 +901,7 @@ function buildEnemyMesh(t,b){
     if(t.shape==='caster'){ const staff=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,1.9,6),mat(0x2a1c10,{r:.9,map:TEX.wood}));staff.position.set(.6,1.2,.15);g.add(staff);
       const skull=new THREE.Mesh(new THREE.SphereGeometry(.16,8,6),mat(0xd8d2c0,{e:glow,ei:.6,map:TEX.grunge,bump:TEX.grunge,bumpScale:.01}));skull.position.set(.6,2.2,.15);g.add(skull);
       const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.04,6,16),eMat(0,glow,2));ring.position.set(0,1.0,.4);ring.rotation.x=Math.PI/2;ring.visible=false;g.add(ring);g.userData.ring=ring;mats.push(ring.material);}
-  } else if(t.shape==='float'){
+  } else if(t.shape==='float'||t.shape==='revenant'){
     const bm=eMat(col,glow,.1, TEX.wisp); mats.push(bm);
     const cloak=new THREE.Mesh(new THREE.ConeGeometry(.55,2.1,18),bm);cloak.position.y=1.1;g.add(cloak);
     const head=new THREE.Mesh(new THREE.SphereGeometry(.26,20,16),mat(0x080808,{r:.6}));head.position.y=2.0;g.add(head);
@@ -942,7 +947,7 @@ function pickEnemyType(){
   const pool=ENEMY_TYPES.filter(t=>t.biome===bi);
   return pick(pool.length?pool:ENEMY_TYPES);
 }
-function bossType(b){ return BOSS_TYPES[b.prop] || BOSS_TYPES.forest; }
+function bossType(b){ return BOSS_TYPES[b.name] || BOSS_TYPES[b.prop] || BOSS_TYPES.forest; }
 
 // ============================================================ weapon viewmodel
 const weaponRig = new THREE.Group(); weaponScene.add(weaponRig);
@@ -1382,6 +1387,13 @@ function applyHex(e){
   G.hp-=Math.max(1,Math.round(e.dmg*0.4)); G.hurtT=.2; G.combo=0; G.comboT=0; ui.flash.style.opacity=.5; setTimeout(()=>ui.flash.style.opacity=0,120);
   floatDmg('HEX',{cls:'hex',top:58,dx:rand(-8,8)});
 }
+function applyChill(e){
+  if(G.iframes>0){ perfectDodge(); return; }
+  G.chillT=3.5; flashLog('Chilled — strike & dodge slowed'); audio('hex');
+  G.hp-=Math.max(1,Math.round(e.dmg*0.85 - G.def*0.5)); G.hurtT=.3; G.camKick=-0.5; G.combo=0; G.comboT=0;
+  ui.flash.style.opacity=.7; setTimeout(()=>ui.flash.style.opacity=0,140);
+  floatDmg('CHILL',{cls:'hex',top:58,dx:rand(-8,8),color:'#bfe8ff'});
+}
 function resolveStrike(){
   if(G.state!=='combat'||!G.enemy||G.enemy.dead) return;
   let dmg = Math.round(G.atk * rand(.85,1.15));
@@ -1482,6 +1494,18 @@ const BEHAVIOR = {
         burst(g.position.x,0.15,g.position.z,{color:0x8a5a2a,n:14,spd:5,life:.45,up:true,grav:12}); }
       if(e.charging<=0){ g.userData.mats.forEach(m=>m.emissiveIntensity=.3); e.recT=e.recovery||0.5; e.atkT=rand(1.6,2.6); }
     } else { e.atkT-=dt; g.position.z=lerp(g.position.z,tz,dt*3); if(e.atkT<=0) e.windup=e.tel; }
+  },
+  frost(e,g,dt,tz){
+    // patient frozen revenant ("they wait"): long pauses, then a slow telegraphed
+    // ground frost-burst at the player's feet — dodge it or take damage + Chill.
+    if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel;
+      g.userData.mats.forEach(m=>m.emissiveIntensity=.12+k*1.5);
+      if(g.userData.orb) g.userData.orb.scale.setScalar(0.001+k*0.5);
+      if(e.windup<=0){ if(g.userData.orb) g.userData.orb.scale.setScalar(0.001);
+        audio('hex'); shock(g.position.x,g.position.z,e.glow,5); shock(G.x,G.z,0x9fe8ff,3.4);
+        burst(G.x,0.2,G.z,{color:0xbfe8ff,n:18,spd:3,life:.6,up:true,grav:6});
+        applyChill(e); e.atkT=rand(2.0,3.2); }
+    } else { e.atkT-=dt; if(e.atkT<=0) e.windup=e.tel; }
   },
   hexer(e,g,dt,tz){
     if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel;
@@ -1793,7 +1817,7 @@ function startGame(){
     strikeCd:0,dodgeCd:0,iframes:0,dodgeX:0,swingT:0,swinging:false,_hitDone:false,hurtT:0,
     enemy:null,eGrp:null,pendingLoot:null,event:null,
     lastWasFork:false,townNPC:null,townT:0,firstTown:true,shopType:null,
-    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false});
+    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0});
   G.equip={weapon:makeWeaponItem('sword','common',{atk:0}),armor:null,helmet:null,gloves:null,under:null,trinket:null,talisman:null};
   rollBiomeOrder();
   for(let i=0;i<META.upg.potion;i++) G.potions.push(POTIONS[0]);
@@ -1847,7 +1871,9 @@ function update(dt){
   if(G.slowmo>0){ G.slowmo=Math.max(0,G.slowmo-dt); dt*=0.5; }
   G.perfCd=Math.max(0,G.perfCd-dt);
   if(G.comboT>0){ G.comboT-=dt; if(G.comboT<=0) G.combo=0; }
-  G.strikeCd=Math.max(0,G.strikeCd-dt); G.dodgeCd=Math.max(0,G.dodgeCd-dt);
+  const cdMul = G.chillT>0 ? 0.55 : 1;   // Frostfen Chill: strike & dodge recover slower
+  G.strikeCd=Math.max(0,G.strikeCd-dt*cdMul); G.dodgeCd=Math.max(0,G.dodgeCd-dt*cdMul);
+  if(G.chillT>0) G.chillT-=dt;
   G.iframes=Math.max(0,G.iframes-dt); G.hurtT=Math.max(0,G.hurtT-dt); G.camKick=lerp(G.camKick,0,dt*8);
   if(G.fovKick!==0){ G.fovKick=lerp(G.fovKick,0,dt*6); if(Math.abs(G.fovKick)<0.02)G.fovKick=0; camera.fov=70+G.fovKick; camera.updateProjectionMatrix(); }
   if((G.hp/G.maxHp<0.3) && (G.state==='combat'||G.state==='travel')){ heartT-=dt; if(heartT<=0){ audio('heartbeat'); heartT=0.92; } } else heartT=0.6;
@@ -1944,7 +1970,7 @@ function update(dt){
   }
   mp.needsUpdate=true; motes.position.set(G.x,0,G.z);
 
-  if(G.swinging){ G.swingT+=dt*(3.2*G.speed);
+  if(G.swinging){ G.swingT+=dt*(3.2*G.speed*cdMul);
     if(!G._hitDone && G.swingT>0.45){ G._hitDone=true; resolveStrike(); }
     if(G.swingT>=1){ G.swinging=false; G.swingT=0; G._hitDone=false; }
   }
