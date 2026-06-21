@@ -14,6 +14,10 @@ module.exports = defineConfig({
   use: {
     baseURL: 'http://localhost:8000',
     headless: true,
+    // Bypass the game's service worker entirely: tests must validate the current
+    // source files, never a precached shell (a stale SW cache would silently mask
+    // edits to index.html / src/*.js and produce baffling "old code" failures).
+    serviceWorkers: 'block',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

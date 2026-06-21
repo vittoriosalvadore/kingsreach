@@ -113,6 +113,24 @@ function buildBloodmoonProp(){ const r=Math.random();
   if(r<.5) return spriteProp(propRec('bm_tree',26,42,dBloodTree), rand(5,8));
   if(r<.8) return spriteProp(propRec('bm_bram',20,18,dBramble), rand(1.2,2.2));
   { const g=new THREE.Group(); const lp=new THREE.Mesh(new THREE.CircleGeometry(rand(1,2),10), new THREE.MeshBasicMaterial({map:propRec('bm_pool',24,24,dBloodPool).tex,transparent:true,fog:true,depthWrite:false})); lp.rotation.x=-Math.PI/2; lp.position.y=0.04; g.add(lp); return g; } }
-const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp, astral:buildAstralProp, bloodmoon:buildBloodmoonProp };
+// ---- Gilded Sanctum: gold, idols, hoards, greed ----
+function dGoldIdol(x,W,H){ const P=PX(x),cx=W>>1; const g='#caa23a',gL='#ffe79a',gD='#7a5e1c',sh='#2a1f08';
+  for(let y=H-1;y>H*0.5;y--){ const w=Math.max(2,5-((H-1-y)/H)*2); for(let i=-w;i<=w;i++)P(cx+i,y,1,1, i<-w+1?gD:(i>w-1?gL:g)); }   // body
+  for(let i=-4;i<=4;i++)P(cx+i,(H*0.46)|0,1,3,(i&1)?g:gD);                                                                  // crossed arms
+  for(let y=(H*0.18)|0;y<(H*0.42)|0;y++){ for(let i=-3;i<=3;i++)P(cx+i,y,1,1, i<0?g:gL); }                                  // head
+  for(let i=-2;i<=2;i++)P(cx+i,(H*0.16)|0,1,1,gL);                                                                          // crown glint
+  P(cx-2,(H*0.28)|0,1,1,sh); P(cx+1,(H*0.28)|0,1,1,sh); }                                                                   // eyes
+function dHoard(x,W,H){ const P=PX(x); const g='#d8b24a',gL='#ffe79a',gD='#8a6a1e';
+  for(let y=H-1;y>H*0.4;y--){ const t=(H-1-y)/(H*0.6), w=Math.round((W/2-1)*(1-t*0.5)); for(let i=-w;i<=w;i++)P((W>>1)+i,y,1,1, ((i+y)&1)?g:gD); }
+  for(let i=0;i<10;i++)P((i*5+2)%W, H-2-((i*7)%((H*0.5)|0)), 1,1, gL); }                                                    // coin glints
+function dGildPillar(x,W,H){ const P=PX(x),cx=W>>1; const m='#b89638',l='#ffe79a',d='#6e521a';
+  for(let y=H-5;y<H;y++)for(let i=-5;i<=5;i++)P(cx+i,y,1,1,y===H-5?l:(i<-3||i>3?d:m));
+  for(let y=4;y<H-5;y++)for(let i=-3;i<=3;i++)P(cx+i,y,1,1, i===-3||i===3?d:(i===-1?l:m));
+  for(let i=-3;i<=3;i++){ const tj=2+((i*i)%3); for(let y=4;y<4+tj;y++)P(cx+i,y,1,1,d); } }
+function buildGildedProp(){ const r=Math.random();
+  if(r<.4)  return spriteProp(propRec('g_idol',18,30,dGoldIdol), rand(2.4,4.5));
+  if(r<.72) return spriteProp(propRec('g_pillar',16,38,dGildPillar), rand(3,6));
+  return spriteProp(propRec('g_hoard',24,16,dHoard), rand(1.2,2.0)); }
+const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp, astral:buildAstralProp, bloodmoon:buildBloodmoonProp, gilded:buildGildedProp };
 
 export { PROP_FN, PX };

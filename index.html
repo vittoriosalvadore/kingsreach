@@ -602,6 +602,12 @@ function buildLandmark(b){
     const c=new THREE.Mesh(new THREE.SphereGeometry(5.5,7,6),mat(0x3a060e,{e:0x8a0e1a,ei:.5}));c.position.y=16;c.scale.y=.7;g.add(c);
     const moon=new THREE.Mesh(new THREE.SphereGeometry(2.6,12,10),mat(0x2a0408,{e:0xff2e44,ei:2.4}));moon.position.set(2.5,20,-3);g.add(moon);g.userData.flame=moon;
     for(let i=0;i<5;i++){ const d=new THREE.Mesh(new THREE.SphereGeometry(rand(.3,.6),6,5),mat(0x2a0408,{e:0xff4d5e,ei:1.2}));d.position.set(rand(-6,6),rand(2,14),rand(-3,3));g.add(d); }
+  } else if(b.prop==='gilded'){
+    // a towering gilded idol on a stepped altar, crowned with greed-light
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(5,6,3,12),mat(0x2a2210,{r:.7,map:TEX.stone,bump:TEX.stone,bumpScale:.05}));base.position.y=1.5;g.add(base);
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.6,12,10),mat(0x6e5a1e,{r:.3,m:.7,e:0xb8902a,ei:.5}));body.position.y=9;g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(2.0,12,10),mat(0x8a6a1e,{r:.3,m:.8,e:0xffcf5a,ei:1.6}));head.position.y=16;g.add(head);g.userData.flame=head;
+    for(let i=0;i<6;i++){ const c=new THREE.Mesh(new THREE.SphereGeometry(rand(.3,.6),6,5),mat(0x2a2010,{e:0xffe79a,ei:1.4}));c.position.set(rand(-6,6),rand(1,5),rand(-3,3));g.add(c); }
   } else {
     const tr=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.8,20,7),mat(0x14110c,{r:1,map:TEX.bark,bump:TEX.bark,bumpScale:.03}));tr.position.y=10;g.add(tr);
     const c=new THREE.Mesh(new THREE.SphereGeometry(5.5,7,6),mat(0x16241a,{r:1}));c.position.y=17;c.scale.y=.7;g.add(c);
@@ -1347,6 +1353,18 @@ const POWERS = {
       ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
       if(e.hp<=0) killEnemy();
     } },
+  kingsgild: { id:'kingsgild', name:"King's Gild", icon:'◈', cd:9,
+    use(){ // greed forged into a blade: spend gold to gild a devastating judgment
+      const e=G.enemy, g=G.eGrp; if(!e) return;
+      const spend=Math.min(G.gold,40); G.gold-=spend;   // gold display refreshes on the next HUD frame
+      const dmg=Math.round(G.atk*1.2 + spend*1.5); e.hp-=dmg;
+      const sx=g?g.position.x:G.x, sz=g?g.position.z:G.z-2.6;
+      audio('smite'); shock(sx,sz,0xffcf5a,5.4); G.camKick=Math.max(G.camKick,0.5);
+      burst(sx,1.3,sz,{color:0xffcf5a,n:26,spd:5,life:.6,up:true,grav:5}); burst(sx,1.3,sz,{color:0xffe79a,n:12,spd:3,life:.5});
+      floatDmg(dmg,{cls:'crit',text:'◈'+dmg,color:'#ffcf5a'});
+      ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
+      if(e.hp<=0) killEnemy();
+    } },
 };
 function activePower(){ for(const id of G.awakenings){ if(POWERS[id]) return POWERS[id]; } return null; }
 function onPower(){
@@ -1484,6 +1502,8 @@ function resolveStrike(){
 function killEnemy(){
   G.enemy.dead=true; G.kills++; ui.eplate.style.opacity=0; ui.smite.classList.remove('ready'); clearProjectiles(); audio('edeath');
   const boss=G.enemy.boss;
+  // an avarice wight carries what it stole — slaying it returns the hoard with interest
+  if(G.enemy.loot>0){ const back=G.enemy.loot+Math.round(G.enemy.loot*0.5); G.gold+=back; flashLog('You reclaim the hoard — +◈'+back); audio('loot'); }
   if(boss){ const bonus=Math.round(rand(60,120)*(1+G.act*0.3)); G.gold+=bonus; flashLog('BOSS SLAIN!  +◈'+bonus); audio('reveal');
     // take the guardian's power — the road's curse waking further in you
     const aw=curBiome().awaken;
@@ -1597,6 +1617,20 @@ const BEHAVIOR = {
           burst(g.position.x,1.3,g.position.z,{color:0xff2e44,n:12,spd:3,life:.5,up:true,grav:6});
           floatDmg(heal,{top:34,color:'#ff6a78',text:'+'+heal}); }
         e.atkT=rand(1.4,2.4); }
+    } else { e.atkT-=dt; if(e.atkT<=0) e.windup=e.tel; }
+  },
+  avarice(e,g,dt,tz){
+    // gilded wight: a darting snatch that robs gold on contact. it carries what it
+    // steals (e.loot) — and the hoard spills back, with interest, when you cut it down.
+    if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel; g.scale.setScalar((e.sc)*(1+k*0.1));
+      g.userData.mats.forEach(m=>m.emissiveIntensity=.12+k*1.6); g.position.z=lerp(tz,G.z-1.2,k);
+      if(e.windup<=0){ g.scale.setScalar(e.sc); g.userData.mats.forEach(m=>m.emissiveIntensity=.08);
+        const before=G.hp; enemyHit(e,1); const landed=G.hp<before;
+        if(landed && G.gold>0){ const stolen=Math.min(G.gold, Math.max(3, Math.round(G.gold*0.08))); G.gold-=stolen; e.loot=(e.loot||0)+stolen;
+          audio('loot');   // gold display refreshes on the next HUD frame
+          burst(g.position.x,1.3,g.position.z,{color:0xffcf5a,n:12,spd:4,life:.5,up:true,grav:8});
+          floatDmg('-◈'+stolen,{top:48,color:'#ffcf5a',dx:rand(-8,8)}); }
+        e.atkT=rand(1.2,2.0); }
     } else { e.atkT-=dt; if(e.atkT<=0) e.windup=e.tel; }
   },
   hexer(e,g,dt,tz){
