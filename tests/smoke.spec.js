@@ -236,6 +236,41 @@ test('the pilgrimage persists across reloads', async ({ page }) => {
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });
 
+test('Awakenings: Rimebrand freezes the foe, has a cooldown, and persists', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html');
+  await waitForBoot(page);
+  await page.evaluate(() => window.__KR.startGame());
+
+  // Grant the Frostfen power, enter combat with a foe mid-windup, and unleash it.
+  const r = await page.evaluate(() => {
+    const KR = window.__KR;
+    KR.G.awakenings.push('rimebrand');
+    KR.G.state = 'travel'; KR.spawnEnemy('normal');
+    const e = KR.G.enemy; const hp0 = e.hp; e.windup = e.tel;   // foe is winding up an attack
+    KR.onPower();
+    return { active: !!KR.activePower(), windup: KR.G.enemy.windup, frozen: KR.G.enemy.frozenT,
+      cd: KR.G.powerCd, dmg: hp0 - KR.G.enemy.hp };
+  });
+  expect(r.active).toBe(true);
+  expect(r.windup).toBe(0);                 // the attack was cancelled
+  expect(r.frozen).toBeGreaterThan(0);      // foe is frozen
+  expect(r.cd).toBeGreaterThan(0);          // power went on cooldown
+  expect(r.dmg).toBeGreaterThan(0);         // and it chipped the foe
+
+  // A frozen foe runs its frames without error.
+  await page.evaluate(() => { for (let i = 0; i < 120; i++) window.__KR.step(0.016); });
+  expect(Number.isFinite((await snapshot(page)).hp)).toBe(true);
+
+  // Awakenings persist across a reload.
+  await page.evaluate(() => window.__KR.persistJourney());
+  await page.reload(); await waitForBoot(page);
+  const saved = await page.evaluate(() => window.__KR.loadJourney());
+  expect(saved.awakenings).toContain('rimebrand');
+
+  expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
+});
+
 test('a corrupt save never yields NaN stats', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/index.html');

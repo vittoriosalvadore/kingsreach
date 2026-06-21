@@ -34,7 +34,7 @@
     overflow:hidden;background:#05060a;box-shadow:0 0 60px #000;}
   canvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;image-rendering:pixelated;}
   #hud{position:absolute;inset:0;z-index:7;pointer-events:auto;}
-  #topbar,#controls,#focuswrap,#enemyplate,#smiteBtn,#potionBtn,#fadelog,#combo{display:none!important;}
+  #topbar,#controls,#focuswrap,#enemyplate,#smiteBtn,#powerBtn,#potionBtn,#fadelog,#combo{display:none!important;}
 
   #grade{position:absolute;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(120% 90% at 50% 38%, rgba(0,0,0,0) 42%, rgba(0,0,0,.62) 100%),linear-gradient(rgba(20,10,30,.05),rgba(0,0,0,.18));}
@@ -106,6 +106,9 @@
   @keyframes pulse{0%,100%{box-shadow:0 0 14px rgba(255,210,110,.5);}50%{box-shadow:0 0 28px rgba(255,210,110,.95);}}
   #potionBtn{position:absolute;bottom:108px;left:24px;z-index:8;width:54px;height:54px;border-color:rgba(120,200,150,.6);display:none;}
   #potionBtn.show{display:flex;}
+  #powerBtn{position:absolute;bottom:46px;left:26px;z-index:8;width:58px;height:58px;border-color:rgba(140,210,240,.7);display:none;}
+  #powerBtn .ico{color:#bfe8ff;}
+  #powerBtn.show{display:flex;}
   #potionBtn .ico{font-size:22px;}
   #potionCount{position:absolute;top:-4px;right:-4px;background:#3a6a4a;border:1px solid #6cf09a;color:#dffbe8;font-size:10px;
     border-radius:9px;min-width:18px;height:18px;line-height:16px;text-align:center;font-family:Georgia,serif;}
@@ -322,6 +325,7 @@
     <div id="strikeBtn" class="btn"><span class="ico">⚔</span><span class="lbl">STRIKE</span></div>
   </div>
   <div id="smiteBtn" class="btn"><span class="ico">✦</span><span class="lbl">SMITE</span></div>
+  <div id="powerBtn" class="btn"><span class="ico">❄</span><span class="lbl">POWER</span></div>
 
   <!-- Title -->
   <div id="titleOv" class="overlay">
@@ -1219,7 +1223,7 @@ const ui = {
   hp:$('hpfill'), atk:$('atkline'), gold:$('gold'), gear:$('gearrow'), buffrow:$('buffrow'),
   biome:$('biome'), depth:$('depth'),
   eplate:$('enemyplate'), ename:$('ename'), etag:$('etag'), ehp:$('ehpfill'),
-  flash:$('hitflash'), fadelog:$('fadelog'), focus:$('focusfill'), smite:$('smiteBtn'),
+  flash:$('hitflash'), fadelog:$('fadelog'), focus:$('focusfill'), smite:$('smiteBtn'), power:$('powerBtn'),
   potionBtn:$('potionBtn'), potionCount:$('potionCount'), potionTray:$('potionTray'),
   strike:$('strikeBtn'), dodge:$('dodgeBtn'), combo:$('combo'), lowhp:$('lowhp'),
 };
@@ -1250,6 +1254,7 @@ addEventListener('keydown',e=>{
   if(e.code==='ShiftLeft'||e.code==='ArrowLeft'){ onDodge(-1); }
   if(e.code==='ArrowRight'){ onDodge(1); }
   if(e.code==='KeyF'){ onSmite(); }
+  if(e.code==='KeyR'){ onPower(); }
   if(e.code==='KeyQ'){ togglePotionTray(); }
   if(G.state==='loot'){ if(e.code==='KeyE') doEquip(); if(e.code==='KeyS') doSell(); }
 });
@@ -1257,6 +1262,7 @@ function bindBtn(el,fn){ el.addEventListener('pointerdown',e=>{ e.preventDefault
 bindBtn(ui.strike, ()=>onStrike());
 bindBtn(ui.dodge, ()=>onDodge(chance(.5)?-1:1));
 bindBtn(ui.smite, ()=>onSmite());
+bindBtn(ui.power, ()=>onPower());
 bindBtn(ui.potionBtn, ()=>togglePotionTray());
 let touchStartX=null;
 canvas.addEventListener('pointerdown',e=>{ touchStartX=e.clientX; });
@@ -1296,6 +1302,25 @@ function onSmite(){
   floatDmg(dmg,{cls:'crit',text:dmg+'!'});
   ui.ehp.style.width = clamp(G.enemy.hp/G.enemy.max*100,0,100)+'%';
   if(G.enemy.hp<=0) killEnemy();
+}
+// ---- Awakenings: signature active powers taken from the guardians you lay to rest ----
+const POWERS = {
+  rimebrand: { id:'rimebrand', name:'Rimebrand', icon:'❄', cd:7.5,
+    use(){ const e=G.enemy, g=G.eGrp; if(!e) return;
+      e.windup=0; e.charging=0; e.hitsLeft=0; e.frozenT=1.7; e.atkT=Math.max(e.atkT||0,1.9);  // freeze: cancel its attack
+      const dmg=Math.round(G.atk*1.2); e.hp-=dmg;
+      const sx=g?g.position.x:G.x, sz=g?g.position.z:G.z-2.6;
+      audio('hex'); shock(sx,sz,0x9fe8ff,5.5); burst(sx,1.3,sz,{color:0xbfe8ff,n:26,spd:4,life:.7,up:true,grav:5});
+      floatDmg(dmg,{cls:'crit',text:'❄'+dmg,color:'#bfe8ff'}); G.camKick=Math.max(G.camKick,0.5);
+      ui.ehp.style.width = clamp(e.hp/e.max*100,0,100)+'%';
+      if(e.hp<=0) killEnemy();
+    } },
+};
+function activePower(){ for(const id of G.awakenings){ if(POWERS[id]) return POWERS[id]; } return null; }
+function onPower(){
+  if(G.state!=='combat'||!G.enemy||G.enemy.dead||G.powerCd>0) return;
+  const pw=activePower(); if(!pw) return;
+  G.powerCd=pw.cd; flashLog(pw.name+'!'); pw.use();
 }
 function togglePotionTray(){
   if(G.potions.length===0 || !(G.state==='combat'||G.state==='travel')) return;
@@ -1427,7 +1452,11 @@ function resolveStrike(){
 function killEnemy(){
   G.enemy.dead=true; G.kills++; ui.eplate.style.opacity=0; ui.smite.classList.remove('ready'); clearProjectiles(); audio('edeath');
   const boss=G.enemy.boss;
-  if(boss){ const bonus=Math.round(rand(60,120)*(1+G.act*0.3)); G.gold+=bonus; flashLog('BOSS SLAIN!  +◈'+bonus); audio('reveal'); }
+  if(boss){ const bonus=Math.round(rand(60,120)*(1+G.act*0.3)); G.gold+=bonus; flashLog('BOSS SLAIN!  +◈'+bonus); audio('reveal');
+    // take the guardian's power — the road's curse waking further in you
+    const aw=curBiome().awaken;
+    if(aw && POWERS[aw] && !G.awakenings.includes(aw)){ G.awakenings.push(aw); flashLog('You take the Guardian’s power — '+POWERS[aw].name); persistJourney(); }
+  }
   const g=G.eGrp; const t0=performance.now();
   if(g){ const gl=G.enemy.glow; const mul=boss?2.2:1;
     burst(g.position.x,1.4,g.position.z,{color:gl,n:Math.round(30*mul),spd:5.5,life:.85,up:true,grav:7});
@@ -1439,6 +1468,7 @@ function killEnemy(){
 }
 function updateEnemy(dt){
   const e=G.enemy, g=G.eGrp; if(!g)return;
+  if(e.frozenT>0){ e.frozenT-=dt; return; }   // Rimebrand: the dead stand frozen, attack cancelled
   const far = (e.behavior==='ranged'||e.behavior==='charger');
   const targetZ = far ? G.z-e.standZ : G.z-2.6;
   if(e.spawnIn>0){ e.spawnIn-=dt; const k=clamp(1-e.spawnIn/0.42,0,1);
@@ -1830,7 +1860,7 @@ function startGame(){
     strikeCd:0,dodgeCd:0,iframes:0,dodgeX:0,swingT:0,swinging:false,_hitDone:false,hurtT:0,
     enemy:null,eGrp:null,pendingLoot:null,event:null,
     lastWasFork:false,townNPC:null,townT:0,firstTown:true,shopType:null,
-    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0, _awardKills:0, _awardDepth:0});
+    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0, _awardKills:0, _awardDepth:0, awakenings:[], powerCd:0});
   G.equip={weapon:makeWeaponItem('sword','common',{atk:0}),armor:null,helmet:null,gloves:null,under:null,trinket:null,talisman:null};
   rollBiomeOrder();
   for(let i=0;i<META.upg.potion;i++) G.potions.push(POTIONS[0]);
@@ -1846,7 +1876,7 @@ function startGame(){
 // ---- persistent pilgrimage: save at the waystation, resume from the title ----
 function journeySnapshot(){
   return { v:1, act:G.act, gold:G.gold, kills:G.kills, awardKills:G._awardKills||0, awardDepth:G._awardDepth||0,
-    weaponType:G.weaponType, equip:G.equip, potionIds:G.potions.map(p=>p.id) };
+    weaponType:G.weaponType, equip:G.equip, potionIds:G.potions.map(p=>p.id), awakenings:G.awakenings };
 }
 function persistJourney(){ saveJourney(journeySnapshot()); }
 function newPilgrimage(){ clearJourney(); startGame(); }
@@ -1859,9 +1889,9 @@ function continueJourney(){
     enemy:null,eGrp:null,pendingLoot:null,event:null,
     lastWasFork:false,townNPC:null,townT:0,firstTown:false,shopType:null,
     gold:j.gold,kills:j.kills,potions:[],tempBuffs:[],atkDebuffT:0,atkDebuffMul:0.65,
-    hitStop:0,combo:0,comboT:0,fovKick:0,slowmo:0,perfCd:0,bossFight:false,chillT:0,
+    hitStop:0,combo:0,comboT:0,fovKick:0,slowmo:0,perfCd:0,bossFight:false,chillT:0,powerCd:0,
     _awardKills:j.awardKills,_awardDepth:j.awardDepth});
-  G.equip=j.equip;
+  G.equip=j.equip; G.awakenings = Array.isArray(j.awakenings)?j.awakenings:[];
   rollBiomeOrder();
   for(const id of j.potionIds){ const p=POTIONS.find(x=>x.id===id); if(p) G.potions.push(p); }
   recalc(); G.hp=G.maxHp; G._awarded=false;
@@ -1929,6 +1959,7 @@ function update(dt){
   const cdMul = G.chillT>0 ? 0.55 : 1;   // Frostfen Chill: strike & dodge recover slower
   G.strikeCd=Math.max(0,G.strikeCd-dt*cdMul); G.dodgeCd=Math.max(0,G.dodgeCd-dt*cdMul);
   if(G.chillT>0) G.chillT-=dt;
+  if(G.powerCd>0) G.powerCd=Math.max(0,G.powerCd-dt);
   G.iframes=Math.max(0,G.iframes-dt); G.hurtT=Math.max(0,G.hurtT-dt); G.camKick=lerp(G.camKick,0,dt*8);
   if(G.fovKick!==0){ G.fovKick=lerp(G.fovKick,0,dt*6); if(Math.abs(G.fovKick)<0.02)G.fovKick=0; camera.fov=70+G.fovKick; camera.updateProjectionMatrix(); }
   if((G.hp/G.maxHp<0.3) && (G.state==='combat'||G.state==='travel')){ heartT-=dt; if(heartT<=0){ audio('heartbeat'); heartT=0.92; } } else heartT=0.6;
@@ -2037,6 +2068,8 @@ function update(dt){
 
   if(G.state==='combat' && G.enemy && !G.enemy.dead){ updateEnemy(dt); updateProjectiles(dt); }
   if(G.hp<=0 && G.state!=='dead') die();
+  if(ui.power){ const pw=(G.state==='combat')&&activePower(); ui.power.classList.toggle('show', !!pw);
+    if(pw){ ui.power.querySelector('.ico').textContent=pw.icon; ui.power.style.opacity = G.powerCd>0?0.4:1; } }
   if(playing) refreshHUD();
 }
 function swingPose(){ return -Math.sin(clamp(G.swingT,0,1)*Math.PI)*1.5; }
@@ -2065,6 +2098,7 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, startBoss, openLoot, beginReveal, endReveal,
   die, reviveAtWaystation, persistJourney, continueJourney, newPilgrimage, loadJourney, clearJourney,
+  onPower, activePower, POWERS,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
   setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
 console.log('[Kingsreach] booted v3 — town + roster + potions');

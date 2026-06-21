@@ -167,6 +167,12 @@ sections. Major sections, in order:
   intro, the `NPCS[].lines` + the Grey Herald's charge lore (`talkNPC`), a per-biome `beat` line on
   each `BIOMES` entry shown in the reveal cutscene (`revealSub`), and a guardian intro `flashLog` on
   boss spawn. Keep in-game copy English; keep the voice grim/Souls-like when extending it.
+- **Awakenings (signature powers):** slaying a biome's guardian grants that land's power (`BIOMES[].awaken`
+  → an id in the `POWERS` table in `index.html`; granted in `killEnemy`, stored in `G.awakenings`,
+  persisted in the journey). Active powers fire via `onPower()` (the ❄ POWER button / key **R**) on a
+  `G.powerCd` cooldown. Frostfen's **Rimebrand** is the worked example: freezes the foe (`e.frozenT`,
+  honoured by an early-return in `updateEnemy`), cancels its windup, and chips frost damage. To add
+  one: set `awaken:'<id>'` on the biome and add a `POWERS.<id>` entry with `{name,icon,cd,use()}`.
 - **State machine:** `G.state` is the single source of truth for what mode the game is in:
   `title`, `town`, `interior` (shop), `travel`, `combat`, `reveal` (act cutscene), `dead`. The
   `update` loop and camera behavior branch on it. Transitions go through the lifecycle functions
