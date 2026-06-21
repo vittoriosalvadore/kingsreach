@@ -52,6 +52,9 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   module shares the same instance), the run-balance constants (`ACT_NODES`, `FORK_CHANCE`,
   `ELITE_BASE`, `POTION_CAP`), `EQUIP_SLOTS`, and `recalc`/`tickBuffs`. Depends only on `data.js`
   (`WEAPON_DEF`), so no circular imports.
+- **`src/meta.js`** — persistent meta-progression: `META` (live binding), `loadMeta` (with the
+  corrupt-save validation that clamps every field — keep it when changing the schema), `saveMeta`,
+  `SAVE_KEY`, `META_DEFAULT`. Depends only on `helpers.js` (`clamp`) and `data.js` (`SOUL_UPG`).
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to

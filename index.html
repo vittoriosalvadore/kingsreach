@@ -460,6 +460,7 @@ import * as THREE from 'three';
 import { $, clamp, lerp, rand, randi, pick, chance, shuffle, easeOut, easeIn, ROMAN, toRoman } from './src/helpers.js';
 import { QPRESETS, BPRESETS, SOUL_UPG, BIOMES, TOD, SEASON, ENEMY_TYPES, BOSS_TYPES, WEAPON_DEF, RAR, SLOTS } from './src/data.js';
 import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc, tickBuffs } from './src/state.js';
+import { META, saveMeta } from './src/meta.js';
 
 // ============================================================ helpers
 // (pure helpers live in ./src/helpers.js; pure data tables in ./src/data.js)
@@ -475,21 +476,9 @@ let BKEY = 'normal';
 try{ const sb=localStorage.getItem('kr_bright'); if(sb&&BPRESETS[sb]) BKEY=sb; }catch(e){}
 const B = Object.assign({}, BPRESETS[BKEY]);
 
-// ============================================================ persistent meta-progression (souls bank + permanent upgrades + records)
-const SAVE_KEY = 'kingsreach_save_v1';
-const META_DEFAULT = { souls:0, totalKills:0, runs:0, best:{depth:0,act:1,kills:0}, upg:{hp:0,atk:0,potion:0,gold:0} };
-const _clone = o => JSON.parse(JSON.stringify(o));
-const _int = (v,def,mn,mx)=>{ v=Math.floor(Number(v)); return Number.isFinite(v)?clamp(v,mn,mx):def; };
-// load + VALIDATE: a corrupt / tampered / old-schema save must never yield NaN or out-of-range stats (that would brick the run — NaN HP is never <=0, so you'd be unkillable)
-function loadMeta(){ const m=_clone(META_DEFAULT);
-  try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&typeof s==='object'){
-    m.souls=_int(s.souls,0,0,1e9); m.totalKills=_int(s.totalKills,0,0,1e9); m.runs=_int(s.runs,0,0,1e9);
-    if(s.best&&typeof s.best==='object'){ m.best.depth=_int(s.best.depth,0,0,1e9); m.best.act=_int(s.best.act,1,1,9999); m.best.kills=_int(s.best.kills,0,0,1e9); }
-    for(const u of SOUL_UPG){ m.upg[u.key]=_int(s.upg&&s.upg[u.key],0,0,u.max); }
-  } }catch(e){}
-  return m; }
-let META = loadMeta();
-function saveMeta(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(META)); }catch(e){} }
+// ============================================================ persistent meta-progression
+// META (souls bank + permanent upgrades + records), loadMeta (with save validation),
+// and saveMeta live in ./src/meta.js (imported above).
 
 // ============================================================ biomes (cycled by act; BIOMES table in ./src/data.js)
 let biomeOrder = BIOMES.map((_,i)=>i);
