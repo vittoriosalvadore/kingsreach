@@ -14,6 +14,8 @@ const CACHE = 'kingsreach-v1';
 const SHELL = [
   './vendor/opentype.min.js',
   './vendor/three/three.module.js',
+  './src/helpers.js',
+  './src/data.js',
   './',
   './index.html',
   './manifest.json',
