@@ -92,6 +92,79 @@ test('every weapon and quality preset applies without errors', async ({ page }) 
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });
 
+test('town shops generate wares without errors', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html');
+  await waitForBoot(page);
+  await page.evaluate(() => window.__KR.startGame());
+  expect((await snapshot(page)).state).toBe('town');
+
+  // Open every shop catalog — the weapon shop rolls one of each WEAPON_DEF,
+  // which is the path that previously crashed on weapons with no name pool.
+  for (const type of ['armor', 'weapon', 'trinket', 'potion']) {
+    await page.evaluate(t => window.__KR.openShopCatalog(t), type);
+    expect((await snapshot(page)).state).toBe('shop');
+  }
+  await page.evaluate(() => window.__KR.backToTown());
+  expect((await snapshot(page)).state).toBe('town');
+
+  expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
+});
+
+test('loot, potions, boss fight, and act transition run cleanly', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html');
+  await waitForBoot(page);
+  await page.evaluate(() => window.__KR.startGame());
+
+  // Loot generation (genGear -> present card).
+  const loot = await page.evaluate(() => {
+    window.__KR.openLoot();
+    const G = window.__KR.G;
+    return { state: G.state, has: !!G.pendingLoot, value: G.pendingLoot && G.pendingLoot.value };
+  });
+  expect(loot.state).toBe('loot');
+  expect(loot.has).toBe(true);
+  expect(Number.isFinite(loot.value)).toBe(true);
+
+  // Potions: grant one and drink it.
+  const potion = await page.evaluate(() => {
+    const G = window.__KR.G;
+    G.potions.push(window.__KR.POTIONS[0]);
+    const before = G.potions.length;
+    window.__KR.usePotion(0);
+    return { before, after: G.potions.length, hp: G.hp };
+  });
+  expect(potion.after).toBe(potion.before - 1);
+  expect(Number.isFinite(potion.hp)).toBe(true);
+
+  // Boss fight.
+  await page.evaluate(() => window.__KR.spawnEnemy('boss'));
+  let g = await page.evaluate(() => {
+    const G = window.__KR.G;
+    return { state: G.state, boss: !!(G.enemy && G.enemy.boss), hp: G.enemy ? G.enemy.hp : null };
+  });
+  expect(g.state).toBe('combat');
+  expect(g.boss).toBe(true);
+  expect(g.hp).toBeGreaterThan(0);
+  await step(page, 300);
+
+  // Act-transition cutscene -> back to town at the next act.
+  const actBefore = await page.evaluate(() => window.__KR.G.act);
+  await page.evaluate(() => window.__KR.beginReveal());
+  expect((await snapshot(page)).state).toBe('reveal');
+  const landed = await page.evaluate(() => {
+    for (let i = 0; i < 4000; i++) { window.__KR.step(0.016); if (window.__KR.G.state === 'town') return i; }
+    return -1;
+  });
+  expect(landed).toBeGreaterThanOrEqual(0);
+  g = await page.evaluate(() => ({ state: window.__KR.G.state, act: window.__KR.G.act }));
+  expect(g.state).toBe('town');
+  expect(g.act).toBe(actBefore + 1);
+
+  expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
+});
+
 test('a corrupt save never yields NaN stats', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/index.html');
