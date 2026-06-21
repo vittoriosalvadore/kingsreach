@@ -75,6 +75,11 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
 - **`src/gear.js`** — loot generation: `rollRarity`, `makeWeaponItem`, `makeGear`, `genGear`, and the
   stat-display helpers (`statShort`/`statRows`). Pure logic over the data tables — imports only
   `helpers` + `data` (`RAR`/`SLOTS`/`WEAPON_DEF`).
+- **`src/props.js`** — the hand-drawn 16-bit prop billboards (trees/rocks/mushrooms/pillars/walls/
+  torches/spires/bones/braziers/lava) and the per-biome builders (`PROP_FN`). Pure canvas/THREE
+  drawing — imports only THREE + helpers. Exports `PROP_FN` (used by `generateAhead`) and `PX`, the
+  pixel-plot helper reused by the enemy/villager sprites. The world streamer (`generateAhead`/
+  `buildLandmark`/`PROP_POOL`) stays in `index.html` since it needs `mat`/`curBiome`.
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
