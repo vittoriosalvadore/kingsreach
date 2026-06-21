@@ -2,9 +2,9 @@ name: Syntax check
 
 on:
   push:
-    paths: ['index.html', 'scripts/check-syntax.mjs', '.github/workflows/syntax-check.yml']
+    paths: ['index.html', 'src/**', 'scripts/check-syntax.mjs', '.github/workflows/syntax-check.yml']
   pull_request:
-    paths: ['index.html', 'scripts/check-syntax.mjs', '.github/workflows/syntax-check.yml']
+    paths: ['index.html', 'src/**', 'scripts/check-syntax.mjs', '.github/workflows/syntax-check.yml']
 
 jobs:
   check:
