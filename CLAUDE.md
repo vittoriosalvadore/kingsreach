@@ -38,13 +38,30 @@ fully self-contained and runs offline. To re-vendor (e.g. to bump versions) run
   `BIOMES`, `POTIONS`). Use it from the devtools console to jump into states without playing
   through. If you add a new state-transition function worth testing, export it here.
 
+## Extracted modules (`src/`)
+
+Modularization is in progress. The pure, dependency-free pieces have been pulled out of
+`index.html` into ES modules under `src/`, imported at the top of the inline `<script type="module">`:
+
+- **`src/helpers.js`** — `$`, `clamp`, `lerp`, `rand`, `randi`, `pick`, `chance`, `shuffle`,
+  `easeOut`, `easeIn`, `ROMAN`, `toRoman`.
+- **`src/data.js`** — pure data tables with no game-state/Three.js deps: `QPRESETS`, `BPRESETS`,
+  `SOUL_UPG`, `BIOMES`, `TOD`, `SEASON`, `ENEMY_TYPES`, `BOSS_TYPES`, `WEAPON_DEF`, `RAR`, `SLOTS`.
+  The behavior that reads these (`recalc`, `makeGear`, `pickEnemyType`, `applyQuality`, …) stays
+  in `index.html`.
+
+`scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
+extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
+avoid circular imports — most of the remaining code is tightly coupled to the shared mutable `G`.
+
 ## Code layout inside `index.html`
 
 The file is `<head>` (CSS in `:root` custom props + the DOM overlays) followed by one
-`<script type="module">` (starts ~line 446). The script is divided by full-width banner
-comments — search for `// ===` to jump between sections. Major sections, in order:
+`<script type="module">`. It imports the `src/` modules above, then continues with the game.
+The script is divided by full-width banner comments — search for `// ===` to jump between
+sections. Major sections, in order:
 
-- **helpers** — `$`, `clamp`, `lerp`, `rand`, `pick`, `chance`, etc. Used everywhere.
+- **helpers / data** — now imported from `src/` (see above).
 - **graphics quality / brightness** — `QPRESETS` (low/medium/high) and `BPRESETS`. `Q` is the
   live quality object; quality gates particle counts, fog, draw distance, AA, bloom, slash FX.
 - **persistent meta-progression** — `META` (souls bank, records, permanent `SOUL_UPG`
