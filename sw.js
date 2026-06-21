@@ -1,16 +1,17 @@
 // Kingsreach service worker — makes the game installable and offline-capable.
 //
-// Strategy:
-//   * App shell (this dir's files) is precached at install.
-//   * Navigations are network-first, falling back to the cached index.html so
-//     the game still launches offline but picks up new deploys when online.
-//   * Everything else (including the Three.js / opentype.js CDN modules and
-//     Three's lazily-imported bloom addons + their transitive deps) is cached
-//     on first successful load — cache-first thereafter. So the FIRST launch
-//     needs the network; every launch after that works fully offline.
+// Strategy (v2):
+//   * App code (index.html, ./src/*.js, manifest) is **network-first**: a fresh
+//     deploy is picked up immediately when online, falling back to cache offline.
+//     (v1 served these cache-first and never updated them — returning players got
+//     stale builds; this fixes that.)
+//   * Immutable, version-pinned assets (./vendor/*, ./icons/*) are cache-first
+//     for fast loads — they only change on a deliberate re-vendor.
+//   * The shell is precached at install so the first offline launch still works.
 //
-// Bump CACHE when the shell changes to retire the old cache.
-const CACHE = 'kingsreach-v1';
+// Bump CACHE on every deploy that changes precached immutables, or to force a
+// purge of stale caches from older versions.
+const CACHE = 'kingsreach-v2';
 const SHELL = [
   './vendor/opentype.min.js',
   './vendor/three/three.module.js',
@@ -45,29 +46,32 @@ self.addEventListener('activate', e => {
   );
 });
 
+const putInCache = (req, res) => {
+  if (res && (res.ok || res.type === 'opaque')) {
+    const copy = res.clone();
+    caches.open(CACHE).then(c => c.put(req, copy));
+  }
+  return res;
+};
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  const url = new URL(req.url);
 
-  // HTML document: network-first, fall back to cached shell when offline.
-  if (req.mode === 'navigate' || req.destination === 'document') {
-    e.respondWith(
-      fetch(req)
-        .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return res; })
-        .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
-    );
+  // Immutable, version-pinned assets: cache-first (fast; rarely change).
+  const immutable = url.origin === self.location.origin &&
+    (url.pathname.includes('/vendor/') || url.pathname.includes('/icons/'));
+  if (immutable) {
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => putInCache(req, res))));
     return;
   }
 
-  // Everything else (incl. cross-origin CDN): cache-first, then fill the cache.
+  // App shell + code (HTML, ./src/*.js, manifest, everything else): network-first
+  // so new deploys are picked up immediately; fall back to cache when offline.
   e.respondWith(
-    caches.match(req).then(hit => hit || fetch(req).then(res => {
-      // Cache successful basic/CORS responses; skip opaque error/partial.
-      if (res && (res.ok || res.type === 'opaque')) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-      }
-      return res;
-    }).catch(() => hit))
+    fetch(req)
+      .then(res => putInCache(req, res))
+      .catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' ? caches.match('./index.html') : undefined)))
   );
 });
