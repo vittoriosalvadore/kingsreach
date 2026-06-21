@@ -463,7 +463,7 @@ import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc,
 import { META, saveMeta } from './src/meta.js';
 import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience } from './src/audio.js';
 import { Q, B, bootAA, RETRO_W, gameEl, canvas, renderer, scene, camera, weaponScene, weaponCam,
-  skyUniforms, sky, hemi, sun, accentLight, enemyKey, enemyRim, townLight, townFill, wkey } from './src/scene.js';
+  skyUniforms, sky, hemi, sun, accentLight, enemyKey, enemyRim, townLight, townFill, wkey, mat, csshex } from './src/scene.js';
 import { TEX } from './src/textures.js';
 import { MOTE_N, moteGeo, moteMat, motes, burst, updateFX, shock, updateShock, updateTelegraph,
   WEATHER_N, wGeo, wPos, wMat, weather, updateWeather, mistMat, mistPlanes, updateMist,
@@ -562,13 +562,6 @@ path.rotation.x=-Math.PI/2; path.position.y=0.02; scene.add(path);
 // ============================================================ props
 const PROP_POOL = [];
 function disposeProp(p){ scene.remove(p.grp); p.grp.traverse(o=>{if(o.geometry)o.geometry.dispose();}); }
-function mat(col,opts={}){
-  const m=new THREE.MeshStandardMaterial({color:col,roughness:opts.r??.95,metalness:opts.m??0,emissive:opts.e??0x000000,emissiveIntensity:opts.ei??1});
-  if(opts.map) m.map=opts.map;
-  if(opts.bump){ m.bumpMap=opts.bump; m.bumpScale=opts.bumpScale??0.02; }
-  if(opts.emap) m.emissiveMap=opts.emap;
-  return m;
-}
 
 // ============================================================ procedural material textures (canvas, generated once, shared)
 // TEX (shared procedural canvas textures) lives in ./src/textures.js
@@ -1098,7 +1091,6 @@ const weaponRig = new THREE.Group(); weaponScene.add(weaponRig);
 let weaponMesh=null;
 // WEAPON_DEF lives in ./src/data.js
 // ---- pixel-art weapon viewmodels (Doom-style flat sprites, held grip-down, pivot at the grip) ----
-const csshex = n => '#'+((n>>>0)&0xffffff).toString(16).padStart(6,'0');
 function wHaft(P,cx,y0,y1,c1,c2){ for(let y=y0;y<y1;y++)P(cx-1,y,2,1,(y&3)<2?c1:c2); }
 function wBlade(x,W,H,col,o){ const P=PX(x),cx=W>>1,hx=csshex(col),L=shade(hx,1.4),D=shade(hx,0.55),M=shade(hx,1.0);
   P(cx-1,H-2,2,2,'#c79f44'); wHaft(P,cx,H-2-o.grip,H-2,'#2a1c10','#3a2818');

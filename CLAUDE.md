@@ -62,9 +62,11 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   their `.key` field tracks the current preset), `renderer`, `scene`, `camera`, `weaponScene`/
   `weaponCam`, the lights (`hemi`, `sun`, `accentLight`, `enemyKey`/`enemyRim`, `townLight`/
   `townFill`, `wkey`), the procedural `sky`/`skyUniforms`, `gameEl`/`canvas`, `bootAA`, `RETRO_W`.
-  Imports only THREE + leaf modules (`helpers`, `data`); creates the GL objects on load. The big
-  reconfig functions (`applyQuality`/`applyBright`) stay in `index.html` and mutate the imported
-  `Q`/`B` via `Object.assign` (so don't reintroduce a separate `QKEY`/`BKEY` — use `Q.key`/`B.key`).
+  Imports only THREE + leaf modules (`helpers`, `data`); creates the GL objects on load. Also hosts
+  the shared `mat()` material factory and `csshex` colour helper used by props/sprites/enemies/
+  viewmodels/interiors. The big reconfig functions (`applyQuality`/`applyBright`) stay in `index.html`
+  and mutate the imported `Q`/`B` via `Object.assign` (so don't reintroduce a separate `QKEY`/`BKEY`
+  — use `Q.key`/`B.key`).
 - **`src/textures.js`** — `TEX`, the shared procedural canvas textures (grunge/cloth/scale/bark/
   stone/metal/char/ember/wisp/wood/glow/mist/skin/hair) generated once and reused by every
   material, sprite, and FX. Imports THREE + `renderer` (for max anisotropy) only.
