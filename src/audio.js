@@ -67,6 +67,17 @@ function tom(t,f,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createG
 function noiseHit(t,vol,dur,freq){ if(!AC)return; const b=AC.createBuffer(1,(AC.sampleRate*dur)|0,AC.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);   // filtered noise (crash / riser)
   const s=AC.createBufferSource(); s.buffer=b; const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq||1200; f.Q.value=0.6; const g=AC.createGain();
   g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f); f.connect(g); g.connect(musOut()); s.start(t); s.stop(t+dur+0.02); }
+// ---- orchestral voices (synthesized: bowed strings, horns, timpani, pizzicato) ----
+function strings(f,t,dur,vol){ if(!AC)return; const g=AC.createGain(); const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2300; lp.connect(musOut()); g.connect(lp);   // bowed string ensemble
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.14); g.gain.setValueAtTime(vol,t+Math.max(0.16,dur*0.7)); g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
+  for(const c of [-8,0,9]){ const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=c; o.connect(g); o.start(t); o.stop(t+dur+0.06); } }
+function brass(f,t,dur,vol){ if(!AC)return; const g=AC.createGain(); const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3200; lp.connect(musOut()); g.connect(lp);   // horn/brass swell
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.08); g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
+  for(const c of [-5,6]){ const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=c; o.connect(g); o.start(t); o.stop(t+dur+0.05); } }
+function timp(t,f,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type='triangle'; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(Math.max(30,f*0.7),t+0.24);   // timpani
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.45); o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+0.5); }
+function pizz(f,t,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type='triangle'; o.frequency.setValueAtTime(f,t);   // pizzicato string
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0005,t+0.14); o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+0.16); }
 // ---- arrangement helpers: build a full ~1-minute timeline from short motifs ----
 const seqc=(...p)=>[].concat(...p);                            // concatenate sections into one timeline
 const rep=(a,n)=>{ let o=[]; for(let i=0;i<n;i++) o=o.concat(a); return o; };   // repeat a section (the hook)
@@ -115,12 +126,21 @@ function makeSong(o){
       if(step===0) sub(NOTE(br),t,barSec*0.9,0.12);
       if(o.softKick && step===0 && bar%2===0) kick(t,0.22);
     }
-    // chord-tone arpeggio motor (consonant by construction)
-    if(o.arp==='drive16') seqNote('sawtooth', NOTE(tones[step%4]+12), t, o.ms/1000*0.9, 0.04, 8);
-    else if(o.arp==='pluck16') seqNote('square', NOTE(tones[step%4]+12), t, o.ms/1000*0.85, 0.045, 4);
-    else if(o.arp==='gentle8'){ if(step%2===0) pluck(NOTE(tones[(step>>1)%4]+12), t, 0.18, 0.05); }
-    else if(o.arp==='bell8'){ if(step%2===0) bell(NOTE(tones[(step>>1)%4]+12), t, 0.5, 0.035); }
-    else if(o.arp==='bell4'){ if(step%4===0) bell(NOTE(tones[(step>>2)%4]+12), t, 0.9, 0.04); }
+    // orchestral pass — strings ensemble bed, timpani, and brass swells (cinematic)
+    if(o.orch){
+      const heavy=(o.mode==='drive'||o.mode==='march');
+      if(step===0){ strings(NOTE(c[0]),t,barSec*1.05,0.03); strings(NOTE(c[1]),t,barSec*1.05,0.024); strings(NOTE(c[2]+12),t,barSec*1.05,0.018); }
+      if(step===0) timp(t,NOTE(br), heavy?0.2:0.12);
+      if(heavy && step===8) timp(t,NOTE(br), 0.16);
+      if(bar%4===0 && step===0){ const bv=heavy?0.05:0.035; brass(NOTE(c[0]),t,barSec*0.85,bv); brass(NOTE(c[2]),t,barSec*0.85,bv*0.8); }
+    }
+    // chord-tone arpeggio — pizzicato strings when orchestral, else the synth voice
+    const a1=NOTE(tones[step%4]+12), a8=NOTE(tones[(step>>1)%4]+12), a4=NOTE(tones[(step>>2)%4]+12);
+    if(o.arp==='drive16'){ if(o.orch) pizz(a1,t,0.05); else seqNote('sawtooth', a1, t, o.ms/1000*0.9, 0.04, 8); }
+    else if(o.arp==='pluck16'){ if(o.orch) pizz(a1,t,0.05); else seqNote('square', a1, t, o.ms/1000*0.85, 0.045, 4); }
+    else if(o.arp==='gentle8'){ if(step%2===0){ if(o.orch) pizz(a8,t,0.055); else pluck(a8, t, 0.18, 0.05); } }
+    else if(o.arp==='bell8'){ if(step%2===0) bell(a8, t, 0.5, 0.035); }
+    else if(o.arp==='bell4'){ if(step%4===0) bell(a4, t, 0.9, 0.04); }
     // foreground memorable lead (octave-lifted in the 2nd half)
     let l=lead[s];
     if(l!=null){
@@ -141,7 +161,7 @@ const A_MENU=[
   20,null,null,null, 24,null,null,null, 22,null,null,null, 20,null,null,null,
   19,null,null,null, 22,null,null,null, 27,null,26,null, 22,null,null,null,
   17,null,null,null, 22,null,null,null, 26,null,24,null, 22,null,null,null];
-const MENU = makeSong({ ms:300, bars:12, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', lift:true,
+const MENU = makeSong({ ms:300, bars:12, orch:true, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', lift:true,
   chords:[[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]], bass:[-12,-16,-9,-14],
   lead: seqc(rep(R16,4), rep(A_MENU,2)) });
 
@@ -151,7 +171,7 @@ const A_TOWN=[
   17,null,22,null, 26,null,29,null, 26,null,22,null, 17,null,null,null,
   27,null,24,null, 19,null,24,null, 27,null,26,null, 24,null,null,null,
   24,null,20,null, 15,null,20,null, 24,null,22,null, 20,null,null,null];
-const TOWN = makeSong({ ms:150, bars:24, mode:'soft', arp:'gentle8', leadV:'bell', shimmer:true, lift:true,
+const TOWN = makeSong({ ms:150, bars:24, orch:true, mode:'soft', arp:'gentle8', leadV:'bell', shimmer:true, lift:true,
   chords:[[3,7,10],[-2,2,5],[0,3,7],[-4,0,3]], bass:[-9,-14,-12,-16],
   lead: seqc(rep(R16,4), rep(A_TOWN,5)) });
 
@@ -161,7 +181,7 @@ const A_BATTLE=[
   20,null,null,null, 24,null,22,null, 24,null,null,null, 27,null,null,null,
   19,null,null,null, 22,null,24,null, 27,null,null,null, 31,null,null,null,
   29,null,null,null, 26,null,22,null, 17,null,null,null, 22,null,null,null];
-const BATTLE = makeSong({ ms:116, bars:32, mode:'drive', arp:'gentle8', leadV:'psaw', shimmer:true, lift:true,
+const BATTLE = makeSong({ ms:116, bars:32, orch:true, mode:'drive', arp:'gentle8', leadV:'psaw', shimmer:true, lift:true,
   chords:[[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]], bass:[-12,-16,-9,-14],
   lead: seqc(rep(R16,4), rep(A_BATTLE,6), rep(R16,4)) });
 
@@ -171,7 +191,7 @@ const A_BOSS=[
   17,null,null,null, 20,null,17,null, 13,null,null,null, 8,null,null,null,
   19,null,null,null, 22,null,19,null, 15,null,null,null, 10,null,null,null,
   24,null,null,null, 19,null,16,null, 19,null,null,null, 24,null,null,null];
-const BOSS = makeSong({ ms:125, bars:28, mode:'march', arp:'gentle8', leadV:'psaw', lift:true,
+const BOSS = makeSong({ ms:125, bars:28, orch:true, mode:'march', arp:'gentle8', leadV:'psaw', lift:true,
   chords:[[5,8,12],[1,5,8],[3,7,10],[0,4,7]], bass:[-7,-11,-9,-12],
   lead: seqc(rep(R16,4), rep(A_BOSS,6)) });
 
@@ -181,7 +201,7 @@ const A_LAMENT=[
   24,null,null,null, 27,null,null,null, 24,null,22,null, 20,null,null,null,
   22,null,null,null, 19,null,22,null, 27,null,null,null, 26,null,null,null,
   26,null,null,null, 23,null,null,null, 19,null,20,null, 19,null,null,null];
-const LAMENT = makeSong({ ms:220, bars:16, mode:'calm', softKick:false, arp:'bell4', leadV:'soft', harmony:-3,
+const LAMENT = makeSong({ ms:220, bars:16, orch:true, mode:'calm', softKick:false, arp:'bell4', leadV:'soft', harmony:-3,
   chords:[[0,3,7],[-4,0,3],[3,7,10],[-5,-1,2]], bass:[-12,-16,-9,-17],
   lead: rep(A_LAMENT,4) });
 
@@ -191,7 +211,7 @@ const A_FOREST=[
   19,null,null,null, 22,null,27,null, 22,null,null,null, 19,null,null,null,
   17,null,null,null, 22,null,26,null, 29,null,null,null, 26,null,null,null,
   24,null,null,null, 20,null,17,null, 12,null,null,null, 17,null,null,null];
-const FOREST = makeSong({ ms:132, bars:28, mode:'drive', arp:'gentle8', leadV:'square', lift:true,
+const FOREST = makeSong({ ms:132, bars:28, orch:true, mode:'drive', arp:'gentle8', leadV:'square', lift:true,
   chords:[[5,8,12],[3,7,10],[-2,2,5],[5,8,12]], bass:[-7,-9,-14,-7],
   lead: seqc(rep(R16,4), rep(A_FOREST,6)) });
 
@@ -203,7 +223,7 @@ const A_MORNING=[
   24,null,null,null, 27,null,26,null, 24,null,null,null, 19,null,null,null,
   24,null,null,null, 27,null,29,null, 27,null,null,null, 24,null,null,null,
   22,null,null,null, 26,null,29,null, 26,null,null,null, 22,null,null,null];
-const MORNING = makeSong({ ms:132, bars:28, mode:'soft', arp:'gentle8', leadV:'square', shimmer:true, lift:true,
+const MORNING = makeSong({ ms:132, bars:28, orch:true, mode:'soft', arp:'gentle8', leadV:'square', shimmer:true, lift:true,
   chords:[[3,7,10],[0,3,7],[-4,0,3],[-2,2,5]], bass:[-9,-12,-16,-14],
   lead: rep(A_MORNING,7) });
 
@@ -213,7 +233,7 @@ const A_EMBER=[
   24,null,null,null, 20,null,19,null, 20,null,null,null, 24,null,null,null,
   22,null,null,null, 29,null,26,null, 22,null,null,null, 17,null,null,null,
   25,null,null,null, 24,null,20,null, 17,null,null,null, 13,null,null,null];
-const EMBER = makeSong({ ms:112, bars:32, mode:'drive', arp:'gentle8', leadV:'psaw', lift:true,
+const EMBER = makeSong({ ms:112, bars:32, orch:true, mode:'drive', arp:'gentle8', leadV:'psaw', lift:true,
   chords:[[0,3,7],[-4,0,3],[-2,2,5],[1,5,8]], bass:[-12,-16,-14,-11],
   lead: seqc(rep(R16,4), rep(A_EMBER,6), rep(R16,4)) });
 
@@ -223,7 +243,7 @@ const A_ASTRAL=[
   24,null,null,null, 27,null,32,null, 27,null,null,null, 24,null,null,null,
   24,null,null,null, 29,null,32,null, 29,null,null,null, 24,null,null,null,
   26,null,null,null, 31,null,35,null, 31,null,null,null, 26,null,null,null];
-const ASTRAL = makeSong({ ms:150, bars:24, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', shimmer:true, lift:true,
+const ASTRAL = makeSong({ ms:150, bars:24, orch:true, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', shimmer:true, lift:true,
   chords:[[0,3,7],[-4,0,3],[5,8,12],[7,11,14]], bass:[-12,-16,-7,-5],
   lead: seqc(rep(R16,4), rep(A_ASTRAL,5)) });
 
