@@ -461,6 +461,7 @@ import { $, clamp, lerp, rand, randi, pick, chance, shuffle, easeOut, easeIn, RO
 import { QPRESETS, BPRESETS, SOUL_UPG, BIOMES, TOD, SEASON, ENEMY_TYPES, BOSS_TYPES, WEAPON_DEF, RAR, SLOTS } from './src/data.js';
 import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc, tickBuffs } from './src/state.js';
 import { META, saveMeta } from './src/meta.js';
+import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience } from './src/audio.js';
 
 // ============================================================ helpers
 // (pure helpers live in ./src/helpers.js; pure data tables in ./src/data.js)
@@ -2333,66 +2334,8 @@ function die(){
 }
 
 // ============================================================ audio
-let AC=null,wind=null;
-function audioStart(){ if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)();
-  const buf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=buf.getChannelData(0);
-  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.5;
-  const src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
-  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420;
-  const g=AC.createGain(); g.gain.value=.05; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(); wind=g;
-}catch(e){} }
-function tone(type,f0,f1,t0,dur,vol){ if(!AC)return; const t=AC.currentTime+t0; const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
-  o.type=type; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
-  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur); o.start(t); o.stop(t+dur+.02); }
-// ---- gentle village music (soft pentatonic loop while in town) ----
-let musicTimer=null, musicStep=0;
-const MEL=[0,3,5,7, 5,3,0,null, 7,10,7,5, 3,5,3,null];
-const BASS=[0,7,3,7];
-function softNote(f,dur,vol){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(AC.destination);
-  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
-  o.start(t); o.stop(t+dur+0.05); }
-function startTownMusic(){ if(musicTimer||!AC) return; musicStep=0;
-  musicTimer=setInterval(()=>{ const root=220;
-    const m=MEL[musicStep%MEL.length]; if(m!=null) softNote(root*Math.pow(2,m/12),0.95,0.05);
-    if(musicStep%4===0){ const b=BASS[Math.floor(musicStep/4)%BASS.length]; softNote((root/2)*Math.pow(2,b/12),1.9,0.045); }
-    musicStep++;
-  }, 560); }
-function stopTownMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
-// ---- per-shop ambience (forge, bubbling, chimes, scrapes) ----
-let shopTimer=null;
-function startShopAmbience(type){ stopShopAmbience(); if(!AC) return; let s=0;
-  shopTimer=setInterval(()=>{
-    if(type==='armor'){ if(s%2===0){ tone('square',180,80,0,.12,.16); tone('triangle',900,520,0,.07,.07); } }       // hammer on anvil
-    else if(type==='weapon'){ if(s%3===0) tone('sawtooth',320,140,0,.2,.09); }                                       // whetstone scrape
-    else if(type==='trinket'){ if(s%2===0) tone('triangle',1180+(s%4)*140,1700,0,.4,.05); }                          // soft chimes
-    else if(type==='potion'){ tone('sine',200+Math.random()*340,140,0,.16,.07); }                                    // bubbling
-    s++;
-  }, 820); }
-function stopShopAmbience(){ if(shopTimer){ clearInterval(shopTimer); shopTimer=null; } }
-function audio(kind){ if(!AC)return;
-  if(kind==='strike') tone('sawtooth',420,120,0,.18,.16);
-  else if(kind==='hit') tone('square',180,70,0,.14,.2);
-  else if(kind==='clang'){ tone('square',520,300,0,.12,.18); tone('triangle',1200,600,0,.1,.1); }
-  else if(kind==='hurt') tone('sawtooth',140,60,0,.25,.22);
-  else if(kind==='dodge') tone('sine',700,1100,0,.12,.08);
-  else if(kind==='smite'){ tone('sawtooth',300,90,0,.3,.22); tone('triangle',900,1600,0,.18,.12); }
-  else if(kind==='jab') tone('square',300,160,0,.07,.12);
-  else if(kind==='slam'){ tone('sawtooth',120,40,0,.35,.26); tone('square',200,60,0,.12,.14); }
-  else if(kind==='cast') tone('sine',300,900,0,.3,.12);
-  else if(kind==='whoosh') tone('sawtooth',600,140,0,.22,.16);
-  else if(kind==='hex'){ tone('sine',500,180,0,.4,.14); tone('sine',505,185,0,.4,.1); }
-  else if(kind==='heal'){ tone('triangle',440,660,0,.2,.12); tone('triangle',660,880,.1,.2,.1); }
-  else if(kind==='potion'){ tone('sine',500,900,0,.15,.12); tone('sine',700,1200,.08,.16,.1); }
-  else if(kind==='edeath') tone('sawtooth',260,50,0,.4,.2);
-  else if(kind==='die') tone('sawtooth',220,40,0,1,.25);
-  else if(kind==='reveal'||kind==='townbell'){ [0,.1,.2].forEach((dt,i)=>tone('triangle',440+i*150,440+i*150,dt,.5,.1)); }
-  else if(kind==='loot'){ [0,.08,.16].forEach((dt,i)=>tone('triangle',520+i*180,520+i*180,dt,.2,.12)); }
-  else if(kind==='crit'){ tone('square',900,300,0,.1,.14); tone('sawtooth',520,120,0,.18,.16); tone('triangle',1500,800,0,.12,.1); }
-  else if(kind==='heartbeat'){ tone('sine',92,54,0,.16,.18); tone('sine',82,48,.2,.16,.14); }
-  else if(kind==='perfect'){ tone('sine',700,1400,0,.18,.12); tone('triangle',1000,2050,.04,.16,.08); }
-  else if(kind==='boss'){ tone('sawtooth',70,40,0,1.2,.3); tone('square',150,60,0,.6,.16); tone('sine',300,120,.2,.8,.1); }
-}
+// All procedural Web Audio (audio/audioStart/town music/shop ambience) lives
+// in ./src/audio.js (imported above).
 
 // ============================================================ resize
 function resize(){
