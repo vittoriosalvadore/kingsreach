@@ -67,14 +67,20 @@ test('boots, walks the road into combat, and dies cleanly', async ({ page }) => 
   await step(page, 600);
   expect(Number.isFinite((await snapshot(page)).hp)).toBe(true);
 
-  // Force death -> clean transition + persisted, valid meta-progression.
+  // Force a fall -> 'dead' beat, souls banked (no permadeath).
+  const actAtFall = await page.evaluate(() => window.__KR.G.act);
   await page.evaluate(() => { window.__KR.G.hp = 0; window.__KR.step(0.016); });
   expect((await snapshot(page)).state).toBe('dead');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('kingsreach_save_v1')));
   expect(saved).toBeTruthy();
-  expect(Number.isFinite(saved.runs)).toBe(true);
-  expect(saved.runs).toBeGreaterThanOrEqual(1);
   expect(Number.isFinite(saved.souls)).toBe(true);
+
+  // The curse denies death: rising returns you to the waystation with progress intact.
+  await page.evaluate(() => window.__KR.reviveAtWaystation());
+  const after = await page.evaluate(() => ({ state: window.__KR.G.state, act: window.__KR.G.act, hp: window.__KR.G.hp, maxHp: window.__KR.G.maxHp }));
+  expect(after.state).toBe('town');
+  expect(after.act).toBe(actAtFall);          // act/progress kept
+  expect(after.hp).toBe(after.maxHp);          // healed at the waystation
 
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });

@@ -153,6 +153,12 @@ sections. Major sections, in order:
 
 ## Architecture notes & conventions
 
+- **Direction:** the game is pivoting from roguelite to a **persistent action-RPG** — a grim
+  pilgrimage down the cursed road to break the dead kings' curse. No permadeath: a fatal blow
+  sends `die()` → the death overlay → `reviveAtWaystation()`, which heals and returns you to town
+  with act/gear/gold intact (you only lose the leg's ground). Biome order is a **fixed narrative
+  route** (`rollBiomeOrder` → `[0,1,2,3,5,4,6]`), not shuffled. (Persistence-to-disk + the
+  narrative/NPC layer are the next pilgrimage steps.)
 - **State machine:** `G.state` is the single source of truth for what mode the game is in:
   `title`, `town`, `interior` (shop), `travel`, `combat`, `reveal` (act cutscene), `dead`. The
   `update` loop and camera behavior branch on it. Transitions go through the lifecycle functions
