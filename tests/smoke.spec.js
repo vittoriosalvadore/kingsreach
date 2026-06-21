@@ -205,23 +205,65 @@ test('Frostfen: signature revenant, Chill, and act boss run cleanly', async ({ p
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });
 
+test('the pilgrimage persists across reloads', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html');
+  await waitForBoot(page);
+
+  // Begin a run, advance the journey, and save it at the waystation.
+  await page.evaluate(() => {
+    const KR = window.__KR; KR.startGame();
+    KR.G.act = 3; KR.G.gold = 137; KR.G.kills = 9; KR.G.potions.push(KR.POTIONS[0]);
+    KR.persistJourney();
+  });
+
+  // Reload (new page load) — the saved pilgrimage must survive and restore intact.
+  await page.reload();
+  await waitForBoot(page);
+  const saved = await page.evaluate(() => window.__KR.loadJourney());
+  expect(saved).toBeTruthy();
+  expect(saved.act).toBe(3);
+
+  await page.evaluate(() => window.__KR.continueJourney());
+  const g = await page.evaluate(() => ({ state: window.__KR.G.state, act: window.__KR.G.act,
+    gold: window.__KR.G.gold, kills: window.__KR.G.kills, hp: window.__KR.G.hp }));
+  expect(g.state).toBe('town');
+  expect(g.act).toBe(3);
+  expect(g.gold).toBe(137);
+  expect(g.kills).toBe(9);
+  expect(Number.isFinite(g.hp)).toBe(true);
+
+  expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
+});
+
 test('a corrupt save never yields NaN stats', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/index.html');
   await waitForBoot(page);
 
-  // Tamper with the save (wrong types, out-of-range, junk) and reload.
-  await page.evaluate(() => localStorage.setItem('kingsreach_save_v1', JSON.stringify({
-    souls: 'NaNNN', runs: -5, totalKills: {}, best: 'nope', upg: { hp: '9999', atk: [], potion: 99 },
-  })));
+  // Tamper with BOTH saves (meta + journey) with wrong types / junk, then reload.
+  await page.evaluate(() => {
+    localStorage.setItem('kingsreach_save_v1', JSON.stringify({
+      souls: 'NaNNN', runs: -5, totalKills: {}, best: 'nope', upg: { hp: '9999', atk: [], potion: 99 } }));
+    localStorage.setItem('kingsreach_journey_v1', JSON.stringify({
+      v: 1, act: 'NaN', gold: [], kills: {}, weaponType: 'bogus',
+      equip: { weapon: { wtype: 'nope', atk: 'x' }, armor: 42, trinket: { slot: 'trinket', crit: 'y' } }, potionIds: [1, 'heal', null] }));
+  });
   await page.reload();
   await waitForBoot(page);
 
-  await page.evaluate(() => window.__KR.startGame());
-  const g = await snapshot(page);
+  // A corrupt journey must coerce to safe values, not brick continueJourney().
+  await page.evaluate(() => window.__KR.continueJourney());
+  let g = await snapshot(page);
   expect(g.state).toBe('town');
   expect(Number.isFinite(g.hp)).toBe(true);
   expect(Number.isFinite(g.maxHp)).toBe(true);
+  expect(Number.isFinite(g.atk)).toBe(true);
+
+  // And a fresh start is always clean.
+  await page.evaluate(() => window.__KR.newPilgrimage());
+  g = await snapshot(page);
+  expect(g.state).toBe('town');
   expect(g.hp).toBeGreaterThan(0);
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });

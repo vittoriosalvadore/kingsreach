@@ -157,8 +157,11 @@ sections. Major sections, in order:
   pilgrimage down the cursed road to break the dead kings' curse. No permadeath: a fatal blow
   sends `die()` → the death overlay → `reviveAtWaystation()`, which heals and returns you to town
   with act/gear/gold intact (you only lose the leg's ground). Biome order is a **fixed narrative
-  route** (`rollBiomeOrder` → `[0,1,2,3,5,4,6]`), not shuffled. (Persistence-to-disk + the
-  narrative/NPC layer are the next pilgrimage steps.)
+  route** (`rollBiomeOrder` → `[0,1,2,3,5,4,6]`), not shuffled. The pilgrimage **persists to disk**
+  (`meta.js`: `saveJourney`/`loadJourney`/`clearJourney`, key `kingsreach_journey_v1`, validated like
+  `loadMeta`): `enterTown`/`equipItem` save a `journeySnapshot()` (act/gold/gear/potions), and the
+  title shows **CONTINUE** when a save exists (`continueJourney`) vs **NEW PILGRIMAGE** (`newPilgrimage`,
+  which clears it). (The narrative/NPC layer is the next pilgrimage step.)
 - **State machine:** `G.state` is the single source of truth for what mode the game is in:
   `title`, `town`, `interior` (shop), `travel`, `combat`, `reveal` (act cutscene), `dead`. The
   `update` loop and camera behavior branch on it. Transitions go through the lifecycle functions
@@ -173,8 +176,9 @@ sections. Major sections, in order:
   gates rather than always rendering full fidelity.
 - **Everything is procedural & shared.** Textures and geometry are generated once and reused.
   Dispose Three.js resources you remove from the scene (see `disposeProp`).
-- **`localStorage` keys:** `kingsreach_save_v1` (meta save), `kr_quality`, `kr_bright`. Bump the
-  save key suffix and keep `loadMeta` validation in sync if you change the meta schema.
+- **`localStorage` keys:** `kingsreach_save_v1` (meta save), `kingsreach_journey_v1` (the persistent
+  pilgrimage), `kr_quality`, `kr_bright`. Bump the key suffix and keep the matching validation
+  (`loadMeta` / `loadJourney`) in sync if you change either schema.
 - **No external state** beyond `localStorage`; the game is fully client-side and offline-capable
   once the CDN scripts are cached.
 
