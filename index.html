@@ -433,10 +433,10 @@
 
   <!-- Death -->
   <div id="deathOv" class="overlay hidden">
-    <div class="subtitle">The road takes another</div>
-    <div class="title" style="font-size:34px;color:#c0392b;">YOU FELL</div>
-    <div class="body" id="deathStats">You walked 0 m and slew 0 of the dead.</div>
-    <button id="restartBtn" class="cta">WALK AGAIN</button>
+    <div class="subtitle">The curse denies you death</div>
+    <div class="title" style="font-size:34px;color:#c0392b;">YOU FALL</div>
+    <div class="body" id="deathStats">The road will not keep you.</div>
+    <button id="restartBtn" class="cta">RISE AGAIN</button>
   </div>
 
   <!-- Biome reveal cutscene -->
@@ -489,7 +489,10 @@ const biomeForAct = act => BIOMES[biomeOrder[(act-1)%BIOMES.length]];
 const biomeIndexForAct = act => biomeOrder[(act-1)%BIOMES.length];
 const curBiome = () => biomeForAct(G.act);
 const nextBiome = () => biomeForAct(G.act+1);
-function rollBiomeOrder(){ const rest=BIOMES.map((_,i)=>i).slice(1); biomeOrder=[0,...shuffle(rest)]; }
+// The pilgrimage follows a fixed, narrative descent toward Kingsreach (no longer
+// a shuffled roguelite order): Wood -> Keep -> Emberdeep -> Frostfen -> Bloodmoon
+// -> Astral Verge -> Gilded Sanctum.
+function rollBiomeOrder(){ biomeOrder=[0,1,2,3,5,4,6]; }
 
 // ============================================================ bloom (post-processing, High tier; gracefully absent if addons fail to load)
 let composer=null, bloomReady=false;
@@ -1817,7 +1820,7 @@ function startGame(){
     strikeCd:0,dodgeCd:0,iframes:0,dodgeX:0,swingT:0,swinging:false,_hitDone:false,hurtT:0,
     enemy:null,eGrp:null,pendingLoot:null,event:null,
     lastWasFork:false,townNPC:null,townT:0,firstTown:true,shopType:null,
-    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0});
+    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0, _awardKills:0, _awardDepth:0});
   G.equip={weapon:makeWeaponItem('sword','common',{atk:0}),armor:null,helmet:null,gloves:null,under:null,trinket:null,talisman:null};
   rollBiomeOrder();
   for(let i=0;i<META.upg.potion;i++) G.potions.push(POTIONS[0]);
@@ -1831,17 +1834,28 @@ function startGame(){
   enterTown();
 }
 bindBtn($('beginBtn'),startGame);
-bindBtn($('restartBtn'),startGame);
+bindBtn($('restartBtn'),reviveAtWaystation);
 function die(){
+  if(G.state==='dead') return;
   G.state='dead'; stopTownMusic();
-  const earned = G._awarded ? 0 : Math.max(1, Math.round(G.depth*0.4 + G.kills*3 + (G.act-1)*15));
-  if(!G._awarded){ G._awarded=true; META.souls+=earned; META.totalKills+=G.kills; META.runs++;
-    if(G.depth>META.best.depth) META.best.depth=Math.floor(G.depth);
-    if(G.act>META.best.act) META.best.act=G.act;
-    if(G.kills>META.best.kills) META.best.kills=G.kills;
-    saveMeta(); }
-  $('deathStats').innerHTML = `You reached <b>Act ${G.act}</b>, slew <b>${G.kills}</b> of the dead, and hoarded <b>◈${G.gold}</b>.<br><br>Harvested <b class="ev-gain">⟡ ${earned} souls</b> &nbsp;·&nbsp; bank: <b>⟡ ${META.souls}</b><br><span class="hint">Best: ${META.best.depth}m · Act ${META.best.act} · ${META.best.kills} slain · ${META.runs} runs</span>`;
+  // The curse denies true death: banked souls reward the dead you laid to rest this
+  // leg (delta since the last fall, so it can't be farmed by dying repeatedly).
+  const dk=Math.max(0,G.kills-(G._awardKills||0)), dd=Math.max(0,G.depth-(G._awardDepth||0));
+  const earned=Math.max(1,Math.round(dk*3 + dd*0.4));
+  META.souls+=earned; META.totalKills+=dk; G._awardKills=G.kills; G._awardDepth=G.depth;
+  if(G.act>META.best.act) META.best.act=G.act; if(Math.floor(G.depth)>META.best.depth) META.best.depth=Math.floor(G.depth);
+  saveMeta();
+  $('deathStats').innerHTML = `The road will not keep you. You wake at the waystation, your wounds knit by the curse you came to break.<br><br>You hold <b>Act ${G.act}</b> · <b>⚔ ${G.kills}</b> laid to rest · <b>◈${G.gold}</b><br>Souls gathered <b class="ev-gain">⟡ ${earned}</b> &nbsp;·&nbsp; reliquary <b>⟡ ${META.souls}</b>`;
   show('deathOv'); audio('die');
+}
+// No permadeath: rising from a fall returns you to the waystation with your gear,
+// gold and progress intact — you lose only the ground of this leg.
+function reviveAtWaystation(){
+  hideAllOverlays();
+  if(G.eGrp){ scene.remove(G.eGrp); G.eGrp=null; } G.enemy=null; clearProjectiles();
+  G.bossFight=false; G.chillT=0; G.atkDebuffT=0; G.tempBuffs.length=0; recalc();
+  G.hp=G.maxHp;
+  enterTown();
 }
 
 // ============================================================ audio
@@ -2007,6 +2021,7 @@ requestAnimationFrame(frame);
 window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, curBiome, nextBiome,
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, startBoss, openLoot, beginReveal, endReveal,
+  die, reviveAtWaystation,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
   setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
 console.log('[Kingsreach] booted v3 — town + roster + potions');
