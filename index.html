@@ -150,6 +150,7 @@
   #shopItems,#catalogItems,#soulItems,#gearList{display:flex;flex-direction:column;gap:9px;width:min(90%,350px);max-height:54vh;overflow-y:auto;}
   .shopitem{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
     background:linear-gradient(180deg,rgba(26,22,16,.96),rgba(10,9,7,.97));border:1px solid #463d2c;text-align:left;}
+  .shopitem.playing{border-color:#c9a8ff;box-shadow:0 0 14px rgba(140,111,212,.5);}
   .si-ico{font-size:21px;width:28px;text-align:center;}
   .si-mid{flex:1;}
   .si-name{font-family:Georgia,serif;font-size:14px;color:var(--ink);}
@@ -334,6 +335,7 @@
     <div class="body">The line of kings died on the road to <b>Kingsreach</b>, and their unquiet dead now choke every mile of it. The last King laid a single charge upon you — a nameless pilgrim: walk the cursed road to its end and break what binds the dead. The curse will not grant you death; it can only turn you back. Rest at each <b>waystation</b>, then walk on… and feel the road begin to wake something in you.</div>
     <button id="continueBtn" class="cta hidden">CONTINUE THE PILGRIMAGE</button>
     <button id="beginBtn" class="cta">ENTER KINGSREACH</button>
+    <button id="jukeboxBtn" class="cta" style="font-size:13px;padding:9px 22px;background:linear-gradient(#8a6fd4,#5a3f9a);">🎵 JUKEBOX</button>
     <div class="hint">STRIKE · DODGE · SMITE · POTION &nbsp;·&nbsp; desktop: SPACE · SHIFT/← → · F · Q</div>
     <div class="perflbl">Graphics quality</div>
     <div id="perfRow" class="perfrow"></div>
@@ -352,6 +354,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
       <button id="gearBtn" class="cta" style="font-size:13px;padding:11px 18px;background:linear-gradient(#8a9aac,#4a5a6a);">📋 GEAR</button>
       <button id="soulBtn" class="cta" style="font-size:13px;padding:11px 18px;background:linear-gradient(#8a6fd4,#5a3f9a);">⟡ SOULS</button>
+      <button id="townJukeBtn" class="cta" style="font-size:13px;padding:11px 18px;background:linear-gradient(#8a6fd4,#5a3f9a);">🎵 MUSIC</button>
       <button id="takeRoadBtn" class="cta">TAKE THE ROAD →</button>
     </div>
   </div>
@@ -363,6 +366,18 @@
     <div id="soulCount" style="font-size:15px;color:#c9a8ff;">⟡ 0</div>
     <div id="soulItems"></div>
     <button id="leaveSoulBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+  </div>
+
+  <!-- Jukebox — audition every track on demand -->
+  <div id="jukeboxOv" class="overlay hidden">
+    <div class="subtitle">Songs from the cursed road</div>
+    <div class="title" style="font-size:25px;">Jukebox</div>
+    <div id="jukeNow" class="hint" style="margin-bottom:6px;">Tap a song to play it</div>
+    <div id="jukeItems"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
+      <button id="jukeStopBtn" class="cta" style="font-size:13px;padding:9px 22px;background:linear-gradient(#8a9aac,#4a5a6a);">■ STOP</button>
+      <button id="leaveJukeBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+    </div>
   </div>
 
   <!-- Equipped gear panel -->
@@ -466,7 +481,7 @@ import { $, clamp, lerp, rand, randi, pick, chance, shuffle, easeOut, easeIn, RO
 import { QPRESETS, BPRESETS, SOUL_UPG, BIOMES, TOD, SEASON, ENEMY_TYPES, BOSS_TYPES, WEAPON_DEF, RAR, SLOTS } from './src/data.js';
 import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc, tickBuffs } from './src/state.js';
 import { META, saveMeta, saveJourney, loadJourney, clearJourney } from './src/meta.js';
-import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience } from './src/audio.js';
+import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience, startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, startLamentMusic, stopLamentMusic, stopAllMusic } from './src/audio.js';
 import { Q, B, bootAA, RETRO_W, gameEl, canvas, renderer, scene, camera, weaponScene, weaponCam,
   skyUniforms, sky, hemi, sun, accentLight, enemyKey, enemyRim, townLight, townFill, wkey, mat, csshex } from './src/scene.js';
 import { TEX } from './src/textures.js';
@@ -1428,7 +1443,8 @@ function spawnEnemy(kind='normal'){
     charging:0, _hitThisCharge:false, _mode:'hex', dead:false, bob:rand(0,6), spawnIn:0.42, bleed:0, bleedT:0, _bleedTick:0 };
   ui.ename.textContent=G.enemy.name; ui.ename.style.color = boss?'#ff8a5a':elite?'#ffcf6a':'#e9d6d2';
   ui.etag.textContent=G.enemy.tag; ui.eplate.style.opacity=1; ui.ehp.style.width='100%';
-  if(boss){ audio('boss'); flashLog('A guardian bars the road — '+t.name); }
+  if(boss){ audio('boss'); flashLog('A guardian bars the road — '+t.name); startBossMusic(); }
+  else startBattleMusic();
   G.state='combat';
 }
 const bolts=[];
@@ -1508,6 +1524,7 @@ function killEnemy(){
     // take the guardian's power — the road's curse waking further in you
     const aw=curBiome().awaken;
     if(aw && POWERS[aw] && !G.awakenings.includes(aw)){ G.awakenings.push(aw); flashLog('You take the Guardian’s power — '+POWERS[aw].name); persistJourney(); }
+    startBattleMusic();   // guardian down — back to the road theme through loot/reveal
   }
   const g=G.eGrp; const t0=performance.now();
   if(g){ const gl=G.enemy.glow; const mul=boss?2.2:1;
@@ -1813,6 +1830,7 @@ function enterTown(){
     el.addEventListener('pointerdown',e=>{e.preventDefault(); if(npc.shop) enterShop(npc); else talkNPC(npc);}); row.appendChild(el); });
   buildPerfRow($('townPerf')); buildBrightRow($('townBright'));
   $('townSouls').textContent = '⟡ '+META.souls+' souls';
+  stopBattleMusic(); stopBossMusic();   // leave the road theme behind at the waystation
   show('townOv'); audio('townbell'); startTownMusic(); refreshHUD();
   persistJourney();   // the waystation records your pilgrimage
 }
@@ -1837,6 +1855,36 @@ function openSoulShrine(){
 function leaveSoulShrine(){ hide('soulOv'); G.state='town'; $('townSouls').textContent='⟡ '+META.souls+' souls'; show('townOv'); }
 bindBtn($('soulBtn'), openSoulShrine);
 bindBtn($('leaveSoulBtn'), leaveSoulShrine);
+// ---- Jukebox: audition every music track on demand (from title or town) ----
+const JUKE_TRACKS=[
+  {icon:'🏚', name:'Waystation',        desc:'Hearth & rest — the gentle town theme',          start:startTownMusic},
+  {icon:'⚔', name:'The Road',          desc:'Driving battle march — on the road & in combat', start:startBattleMusic},
+  {icon:'☠', name:'The Guardian',      desc:'Heavy & tense — the act-boss theme',             start:startBossMusic},
+  {icon:'🕯', name:"Pilgrim's Lament",   desc:'Slow, melodic & melancholy',                     start:startLamentMusic},
+];
+let _jukeFrom='titleOv';
+function openJukebox(from){
+  _jukeFrom = from || (G.state==='town'?'townOv':'titleOv');
+  audioStart(); stopAllMusic();
+  hide(_jukeFrom);
+  $('jukeNow').textContent='Tap a song to play it';
+  const wrap=$('jukeItems'); wrap.innerHTML='';
+  JUKE_TRACKS.forEach(tr=>{
+    const div=document.createElement('div'); div.className='shopitem';
+    div.innerHTML=`<div class="si-ico">${tr.icon}</div><div class="si-mid"><div class="si-name">${tr.name}</div><div class="si-desc">${tr.desc}</div></div><button class="si-buy">▶</button>`;
+    div.querySelector('.si-buy').addEventListener('pointerdown',e=>{ e.preventDefault();
+      playJukeTrack(tr); wrap.querySelectorAll('.shopitem').forEach(x=>x.classList.remove('playing')); div.classList.add('playing'); });
+    wrap.appendChild(div);
+  });
+  show('jukeboxOv');
+}
+function playJukeTrack(tr){ audioStart(); stopAllMusic(); tr.start(); $('jukeNow').textContent='♪ Now playing — '+tr.name; }
+function jukeStop(){ stopAllMusic(); $('jukeNow').textContent='Stopped'; $('jukeItems').querySelectorAll('.shopitem').forEach(x=>x.classList.remove('playing')); }
+function closeJukebox(){ stopAllMusic(); hide('jukeboxOv'); show(_jukeFrom); if(_jukeFrom==='townOv') startTownMusic(); }
+bindBtn($('jukeboxBtn'), ()=>openJukebox('titleOv'));
+bindBtn($('townJukeBtn'), ()=>openJukebox('townOv'));
+bindBtn($('jukeStopBtn'), jukeStop);
+bindBtn($('leaveJukeBtn'), closeJukebox);
 function openGear(){
   G.state='shop'; hide('townOv');
   const parts=[`⚔ ${G.atk}`,`🛡 ${G.def}`,`❤ ${G.maxHp}`];
@@ -1887,7 +1935,7 @@ function takeTheRoad(){
   G.state='travel'; G.actNodes=0; G.firstNode=true; G.lastWasFork=false; G.nodeAt=G.depth+rand(6,9);
   for(let i=PROP_POOL.length-1;i>=0;i--){ if(PROP_POOL[i].grp.position.z < G.z){ disposeProp(PROP_POOL[i]); PROP_POOL.splice(i,1); } }
   frontier=G.z; generateAhead(G.z-Q.dist);
-  stopTownMusic(); flashLog('You take the road'); refreshHUD();
+  stopTownMusic(); startBattleMusic(); flashLog('You take the road'); refreshHUD();
 }
 bindBtn($('takeRoadBtn'), takeTheRoad);
 
@@ -1944,7 +1992,7 @@ function endReveal(){ $('revealOv').classList.remove('show'); G.act++; enterTown
 // ============================================================ overlays / lifecycle
 function show(id){ $(id).classList.remove('hidden'); }
 function hide(id){ $(id).classList.add('hidden'); }
-function hideAllOverlays(){ ['titleOv','deathOv','lootOv','forkOv','shopOv','catalogOv','eventOv','dlgOv','townOv','soulOv','gearOv'].forEach(hide); }
+function hideAllOverlays(){ ['titleOv','deathOv','lootOv','forkOv','shopOv','catalogOv','eventOv','dlgOv','townOv','soulOv','gearOv','jukeboxOv'].forEach(hide); }
 function startGame(){
   Object.assign(G,{state:'town',z:0,x:0,depth:0,kills:0,gold:30+META.upg.gold*25,hp:100,baseHp:100+META.upg.hp*15,
     act:1,actNodes:0,firstNode:true,nodeAt:9,lootBoost:0,focus:0,revealT:0,
@@ -2000,7 +2048,7 @@ bindBtn($('continueBtn'),continueJourney);
 bindBtn($('restartBtn'),reviveAtWaystation);
 function die(){
   if(G.state==='dead') return;
-  G.state='dead'; stopTownMusic();
+  G.state='dead'; stopAllMusic();
   // The curse denies true death: banked souls reward the dead you laid to rest this
   // leg (delta since the last fall, so it can't be farmed by dying repeatedly).
   const dk=Math.max(0,G.kills-(G._awardKills||0)), dd=Math.max(0,G.depth-(G._awardDepth||0));
@@ -2191,6 +2239,8 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, startBoss, openLoot, beginReveal, endReveal,
   die, reviveAtWaystation, persistJourney, continueJourney, newPilgrimage, loadJourney, clearJourney,
   onPower, activePower, POWERS,
+  startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, startLamentMusic, stopLamentMusic, stopAllMusic, startTownMusic, stopTownMusic,
+  openJukebox, playJukeTrack, jukeStop, closeJukebox, JUKE_TRACKS,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
   setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
 console.log('[Kingsreach] booted v3 — town + roster + potions');
