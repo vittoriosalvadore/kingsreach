@@ -1905,7 +1905,7 @@ const JUKE_TRACKS=[
   {icon:'☠', name:'The Guardian',      desc:'Heavy, badass act-boss theme',                   start:startBossMusic},
   {icon:'🕯', name:"Pilgrim's Lament",   desc:'Slow, melodic & melancholy (now layered)',       start:startLamentMusic},
   {icon:'🌲', name:'Forest Hunt',       desc:'Woodland prowl — forest & grove biomes',         start:startForestMusic},
-  {icon:'🔔', name:'Morning Bonk',      desc:'Bright, bouncy & quirky — the Gilded Sanctum',    start:startMorningMusic},
+  {icon:'🔔', name:'Gilded Dawn',       desc:'Bright, bouncy & quirky — the Gilded Sanctum',    start:startMorningMusic},
   {icon:'🔥', name:'Ember March',       desc:'Molten, pounding march — Emberdeep',              start:startEmberMusic},
   {icon:'🌌', name:'Astral Drift',      desc:'Eerie cosmic drift — the Astral Verge',          start:startAstralMusic},
 ];
@@ -2305,7 +2305,9 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
 // The menu theme can't autoplay (browsers require a gesture first) — start it on
 // the first interaction while still on the title; it switches off once a run begins.
 addEventListener('pointerdown', function _kickMusic(){
-  audioStart(); if(G.state==='title') startMenuMusic();
+  audioStart();
+  // only on the bare title — not if this tap opened the jukebox (it manages its own music)
+  if(G.state==='title' && $('jukeboxOv').classList.contains('hidden')) startMenuMusic();
 }, { once:true });
 console.log('[Kingsreach] booted v3 — town + roster + potions');
 </script>
