@@ -53,7 +53,7 @@ const NOTE=n=>110*Math.pow(2,n/12);   // semitone offset from A2
 let battleTimer=null, battleStep=0;
 const B_ARP=[0,7,12,15, 0,7,12,19, -2,5,10,14, 3,10,15,17];   // climbing minor arp hook
 const B_BASS=[0,0,7,7, 0,0,5,5, -2,-2,3,3, 3,3,7,10];
-export function startBattleMusic(){ if(battleTimer||!AC) return; stopTownMusic(); stopBossMusic(); battleStep=0;
+export function startBattleMusic(){ if(battleTimer||!AC) return; stopTownMusic(); stopBossMusic(); stopLamentMusic(); battleStep=0;
   battleTimer=setInterval(()=>{ const t=AC.currentTime+0.02, s=battleStep%16;
     if(s%4===0) kick(t,0.5);                                   // four-on-the-floor pulse
     if(s===6||s%8===4) snare(t,0.16);                          // backbeat snare
@@ -68,7 +68,7 @@ export function stopBattleMusic(){ if(battleTimer){ clearInterval(battleTimer); 
 let bossTimer=null, bossStep=0;
 const BO_LEAD=[0,null,3,0, -1,null,3,5, 7,null,5,3, 1,3,1,null];   // tense, sparse phrase
 const BO_BASS=[0,0,0,1, 0,0,0,-1, 0,0,3,3, 1,1,0,0];
-export function startBossMusic(){ if(bossTimer||!AC) return; stopTownMusic(); stopBattleMusic(); bossStep=0;
+export function startBossMusic(){ if(bossTimer||!AC) return; stopTownMusic(); stopBattleMusic(); stopLamentMusic(); bossStep=0;
   bossTimer=setInterval(()=>{ const t=AC.currentTime+0.02, s=bossStep%16;
     if(s%2===0) kick(t,0.55);                                  // relentless heavy kick
     if(s%8===4) snare(t,0.2);                                  // half-time snare
@@ -80,8 +80,23 @@ export function startBossMusic(){ if(bossTimer||!AC) return; stopTownMusic(); st
     bossStep++;
   }, 117); }
 export function stopBossMusic(){ if(bossTimer){ clearInterval(bossTimer); bossTimer=null; } }
+// lament: a slow, melodic & melancholy pilgrim's march (~100 BPM) — a different mood
+// from the driving battle and the dread boss: warm bass, soft pulse, a yearning lead.
+let lamentTimer=null, lamentStep=0;
+const L_LEAD=[12,null,10,12, 15,null,14,15, 17,null,15,12, 10,12,null,null];   // a yearning minor line
+const L_BASS=[0,0,0,0, 5,5,5,5, 3,3,3,3, 7,5,7,10];
+export function startLamentMusic(){ if(lamentTimer||!AC) return; stopTownMusic(); stopBattleMusic(); stopBossMusic(); lamentStep=0;
+  lamentTimer=setInterval(()=>{ const t=AC.currentTime+0.02, s=lamentStep%16;
+    if(s%4===0) kick(t,0.32);                                  // soft marching pulse
+    if(s%8===4) snare(t,0.09);                                 // gentle backbeat
+    seqNote('triangle', NOTE(L_BASS[s]-12), t, 0.26, 0.11);    // warm bass
+    const m=L_LEAD[s]; if(m!=null){ seqNote('triangle', NOTE(m), t, 0.30, 0.085);   // melodic lead
+      seqNote('sine', NOTE(m+12), t, 0.30, 0.028); }                                // soft octave shimmer
+    lamentStep++;
+  }, 150); }
+export function stopLamentMusic(){ if(lamentTimer){ clearInterval(lamentTimer); lamentTimer=null; } }
 // stop every music loop (handy on title/death/state resets)
-export function stopAllMusic(){ stopTownMusic(); stopBattleMusic(); stopBossMusic(); }
+export function stopAllMusic(){ stopTownMusic(); stopBattleMusic(); stopBossMusic(); stopLamentMusic(); }
 // ---- per-shop ambience (forge, bubbling, chimes, scrapes) ----
 let shopTimer=null;
 export function startShopAmbience(type){ stopShopAmbience(); if(!AC) return; let s=0;
