@@ -57,6 +57,7 @@ export function loadJourney(){
       weaponType: WEAPON_DEF[s.weaponType]?s.weaponType:'sword', equip:eq,
       potionIds: Array.isArray(s.potionIds) ? s.potionIds.filter(x=>typeof x==='string').slice(0,12) : [],
       awakenings: Array.isArray(s.awakenings) ? s.awakenings.filter(x=>typeof x==='string').slice(0,16) : [],
+      passives: Array.isArray(s.passives) ? s.passives.filter(x=>typeof x==='string').slice(0,24) : [],
     };
   }catch(e){ return null; }
 }

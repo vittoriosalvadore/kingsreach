@@ -1780,7 +1780,40 @@ const SHRINES=[
   {title:'Whispering Idol', body:'Press your palm to the cold stone, and let fate decide.', gain:'50%: heal full & +3 Atk', cost:'50%: −15 Max Health',
    fn:()=>{ if(chance(.5)){ G.permAtk+=3; flashLog('The idol blesses you'); recalc(); G.hp=G.maxHp; } else { G.permHp-=15; flashLog('The idol curses you'); } }},
 ];
+// ---- lesser awakenings: minor PERMANENT passives the road wakes in you at shrines
+// (distinct from the guardians' signature active POWERS). Stored as ids in G.passives,
+// folded into stats by applyPassives()->passBonus->recalc, and saved with the journey. ----
+const LESSER_AWAKENINGS=[
+  {id:'keeneye',   name:'Keen Eye',     icon:'🎯', stat:{crit:6},      desc:'+6% critical chance'},
+  {id:'ironskin',  name:'Ironskin',     icon:'🛡', stat:{def:3},       desc:'+3 defense'},
+  {id:'wolfblood', name:"Wolf's Blood", icon:'🩸', stat:{lifesteal:4}, desc:'+4% lifesteal'},
+  {id:'emberheart',name:'Emberheart',   icon:'⚔', stat:{atk:4},       desc:'+4 attack'},
+  {id:'slowmend',  name:'Slow Mending', icon:'✚', stat:{regen:2},      desc:'+2 health regen'},
+  {id:'fleetfoot', name:'Fleetfoot',    icon:'💨', stat:{speed:10},    desc:'+10% speed'},
+  {id:'deepwell',  name:'Deep Well',    icon:'❤', stat:{hp:30},        desc:'+30 max health'},
+  {id:'witchmark', name:'Witch-Mark',   icon:'✦', stat:{spell:6},      desc:'+6 spell power'},
+];
+function applyPassives(){
+  const pb=G.passBonus; for(const k in pb) pb[k]=0;
+  for(const id of G.passives){ const p=LESSER_AWAKENINGS.find(x=>x.id===id); if(!p) continue;
+    for(const k in p.stat) pb[k]=(pb[k]||0)+p.stat[k]; }
+  recalc();
+}
+function grantPassive(id){ if(!G.passives.includes(id)) G.passives.push(id); applyPassives(); }
+function openLesserAwakening(avail){
+  const two=shuffle(avail.slice()).slice(0,2);
+  const btns=two.map(p=>({label:`${p.icon} ${p.name}`, fn:()=>{
+    const pm=G.maxHp; grantPassive(p.id); if(G.maxHp>pm) G.hp+=(G.maxHp-pm); G.hp=Math.min(G.hp,G.maxHp);
+    flashLog('A lesser power wakes — '+p.name); audio('reveal'); refreshHUD(); persistJourney(); closeEvent(); }}));
+  btns.push({label:'Leave it be', fn:()=>closeEvent()});
+  showEvent('🔥','Forgotten Shrine',
+    `The cold stone stirs something already half-woken in you. Take what rises:<br><br>`+
+    two.map(p=>`<span class="ev-gain">${p.icon} ${p.name}</span> — ${p.desc}`).join('<br>'), btns);
+}
 function openShrine(){
+  // the road sometimes wakes a lesser power in you; otherwise an old bargain
+  const avail=LESSER_AWAKENINGS.filter(p=>!G.passives.includes(p.id));
+  if(avail.length>=2 && chance(0.55)){ openLesserAwakening(avail); return; }
   const s=pick(SHRINES);
   showEvent('🔥', s.title, `${s.body}<br><br><span class="ev-gain">${s.gain}</span> &nbsp;·&nbsp; <span class="ev-cost">${s.cost}</span>`, [
     {label:'Accept the bargain', fn:()=>{ const pm=G.maxHp; s.fn(); recalc(); if(G.maxHp>pm)G.hp+=(G.maxHp-pm); G.hp=Math.min(G.hp,G.maxHp); refreshHUD(); closeEvent(); }},
@@ -1917,6 +1950,16 @@ function openGear(){
     div.innerHTML=`<div class="si-ico">${icon}</div><div class="si-mid"><div class="si-name" style="color:${col}">${name}</div><div class="si-desc">${desc}</div></div><div style="font-size:9px;color:#8c8270;letter-spacing:1px;text-align:right;">${lbl.toUpperCase()}</div>`;
     wrap.appendChild(div);
   }
+  // awakenings the road has woken in you: signature powers + lesser passives
+  const powers=G.awakenings.map(id=>POWERS[id]).filter(Boolean);
+  const lessers=G.passives.map(id=>LESSER_AWAKENINGS.find(x=>x.id===id)).filter(Boolean);
+  if(powers.length||lessers.length){
+    const aw=document.createElement('div'); aw.className='shopitem'; aw.style.flexWrap='wrap';
+    const tags=[...powers.map(p=>`<span style="color:#c9a8ff">${p.icon} ${p.name}</span>`),
+                ...lessers.map(p=>`<span style="color:#9fd0a0">${p.icon} ${p.desc}</span>`)].join('&nbsp; · &nbsp;');
+    aw.innerHTML=`<div class="si-mid"><div class="si-name" style="color:#c9a8ff">Awakenings</div><div class="si-desc">${tags}</div></div>`;
+    wrap.appendChild(aw);
+  }
   show('gearOv');
 }
 function leaveGear(){ hide('gearOv'); G.state='town'; show('townOv'); }
@@ -2014,11 +2057,11 @@ function startGame(){
     strikeCd:0,dodgeCd:0,iframes:0,dodgeX:0,swingT:0,swinging:false,_hitDone:false,hurtT:0,
     enemy:null,eGrp:null,pendingLoot:null,event:null,
     lastWasFork:false,townNPC:null,townT:0,firstTown:true,shopType:null,
-    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0, _awardKills:0, _awardDepth:0, awakenings:[], powerCd:0});
+    potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65, hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0, _awardKills:0, _awardDepth:0, awakenings:[], powerCd:0, passives:[]});
   G.equip={weapon:makeWeaponItem('sword','common',{atk:0}),armor:null,helmet:null,gloves:null,under:null,trinket:null,talisman:null};
   rollBiomeOrder();
   for(let i=0;i<META.upg.potion;i++) G.potions.push(POTIONS[0]);
-  recalc(); G.hp=G.maxHp; G._awarded=false;
+  applyPassives(); recalc(); G.hp=G.maxHp; G._awarded=false;
   for(const p of PROP_POOL) disposeProp(p); PROP_POOL.length=0; frontier=0; generateAhead(-Q.dist);
   if(G.eGrp){scene.remove(G.eGrp);G.eGrp=null;} clearProjectiles();
   setWeapon('sword');
@@ -2030,7 +2073,7 @@ function startGame(){
 // ---- persistent pilgrimage: save at the waystation, resume from the title ----
 function journeySnapshot(){
   return { v:1, act:G.act, gold:G.gold, kills:G.kills, awardKills:G._awardKills||0, awardDepth:G._awardDepth||0,
-    weaponType:G.weaponType, equip:G.equip, potionIds:G.potions.map(p=>p.id), awakenings:G.awakenings };
+    weaponType:G.weaponType, equip:G.equip, potionIds:G.potions.map(p=>p.id), awakenings:G.awakenings, passives:G.passives };
 }
 function persistJourney(){ saveJourney(journeySnapshot()); }
 function newPilgrimage(){ clearJourney(); startGame(); }
@@ -2046,6 +2089,7 @@ function continueJourney(){
     hitStop:0,combo:0,comboT:0,fovKick:0,slowmo:0,perfCd:0,bossFight:false,chillT:0,powerCd:0,
     _awardKills:j.awardKills,_awardDepth:j.awardDepth});
   G.equip=j.equip; G.awakenings = Array.isArray(j.awakenings)?j.awakenings:[];
+  G.passives = Array.isArray(j.passives)?j.passives:[]; applyPassives();
   rollBiomeOrder();
   for(const id of j.potionIds){ const p=POTIONS.find(x=>x.id===id); if(p) G.potions.push(p); }
   recalc(); G.hp=G.maxHp; G._awarded=false;
@@ -2252,7 +2296,7 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, startBoss, openLoot, beginReveal, endReveal,
   die, reviveAtWaystation, persistJourney, continueJourney, newPilgrimage, loadJourney, clearJourney,
-  onPower, activePower, POWERS,
+  onPower, activePower, POWERS, openShrine, openLesserAwakening, grantPassive, applyPassives, LESSER_AWAKENINGS,
   startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, startLamentMusic, stopLamentMusic, stopAllMusic, startTownMusic, stopTownMusic,
   startMenuMusic, stopMenuMusic, startForestMusic, startMorningMusic, startEmberMusic, startAstralMusic, roadMusic, musicSelfTest,
   openJukebox, playJukeTrack, jukeStop, closeJukebox, JUKE_TRACKS,
