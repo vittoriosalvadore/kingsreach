@@ -176,6 +176,7 @@ test('loot, potions, boss fight, and act transition run cleanly', async ({ page 
 for (const b of [
   { name: 'Frostfen', behavior: 'frost' },
   { name: 'Astral Verge', behavior: 'blink' },
+  { name: 'Bloodmoon Grove', behavior: 'leech' },
 ]) {
   test(`${b.name}: signature foe + act boss (${b.behavior}) run cleanly`, async ({ page }) => {
     const errors = collectErrors(page);

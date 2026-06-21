@@ -96,6 +96,23 @@ function buildAstralProp(){ const r=Math.random();
   if(r<.45) return spriteProp(propRec('a_mono',16,34,dMonolith), rand(2.6,5.5));
   if(r<.78) return spriteProp(propRec('a_shard',14,22,dShard), rand(1.4,2.6));
   return spriteProp(propRec('a_star',16,18,dStarflk), rand(1.2,2.0)); }
-const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp, astral:buildAstralProp };
+// ---- Bloodmoon Grove: red moon, blood-drunk trees, thorns ----
+function dBloodTree(x,W,H){ const P=PX(x),cx=W>>1; const tk='#241016',tkD='#140509',tkL='#3a1a22',lf='#5a0e18',lfD='#3a060e',lfL='#a01a2a',gl='#ff4d5e';
+  for(let y=H-1;y>H*0.38;y--){ const t=(H-1-y)/H,w=Math.max(1,3-t*2); for(let i=-w;i<=w;i++)P(cx+i,y,1,1, i<=-w+1?tkD:i>=w-1?tkD:(i<0?tk:tkL)); }
+  P(cx-3,H-2,7,2,tkD);
+  const ty=(H*0.42)|0, B=(sx,sy,dx,dy,n,c)=>{let bx=sx,by=sy;for(let i=0;i<n;i++){bx+=dx;by+=dy;P(bx,by,1,1,c);if(i<n*0.6)P(bx,by+1,1,1,c);}};
+  B(cx,ty,-0.7,-0.8,9,tkD);B(cx,ty-2,0.8,-0.7,9,tk);B(cx,ty-6,-0.5,-0.9,6,tkD);
+  for(let i=0;i<26;i++){ const a=i*2.4,r=1.5+(i%6); P(cx+Math.cos(a)*r,(H*0.18)+Math.sin(a)*r*0.7,1,1, i%5===0?gl:(i%4===0?lfL:(i%2?lf:lfD))); } }
+function dBramble(x,W,H){ const P=PX(x); const v='#4a0a12',vD='#2a0408',th='#7a1420',gl='#ff2e44';
+  for(let i=0;i<5;i++){ let px=(i*5+2)%W, py=H-1; for(let k=0;k<H-2;k++){ px=(px+(k%2?1:-1)+W)%W; py-=1; P(px,py,1,1,(k%3?v:vD)); if(k%4===0)P((px+1)%W,py,1,1,th); } }
+  for(let i=0;i<4;i++)P((i*7+3)%W,((H*0.4)+i*2)%H,1,1,gl); }
+function dBloodPool(x,W,H){ const P=PX(x); const a='#2a0408',b='#7a0e18',c='#ff3a4a',d='#4a0810';
+  x.fillStyle=a;x.fillRect(0,0,W,H);
+  for(let i=0;i<60;i++)P((i*7)%W,(i*11)%H,1,1, i%3===0?c:(i%2?b:d)); }
+function buildBloodmoonProp(){ const r=Math.random();
+  if(r<.5) return spriteProp(propRec('bm_tree',26,42,dBloodTree), rand(5,8));
+  if(r<.8) return spriteProp(propRec('bm_bram',20,18,dBramble), rand(1.2,2.2));
+  { const g=new THREE.Group(); const lp=new THREE.Mesh(new THREE.CircleGeometry(rand(1,2),10), new THREE.MeshBasicMaterial({map:propRec('bm_pool',24,24,dBloodPool).tex,transparent:true,fog:true,depthWrite:false})); lp.rotation.x=-Math.PI/2; lp.position.y=0.04; g.add(lp); return g; } }
+const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp, astral:buildAstralProp, bloodmoon:buildBloodmoonProp };
 
 export { PROP_FN, PX };
