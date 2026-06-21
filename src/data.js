@@ -49,7 +49,7 @@ export const BIOMES = [
   { name:'Bloodmoon Grove',
     fog:0x200c0e, sky:[0x1a0608,0x4a1418,0x260a0c], hemiSky:0xc05a52, hemiGround:0x200a0a,
     sun:0xff9a86, sunInt:0.78, ground:'#2e1614', groundDark:'#180a0a',
-    accent:0xff4d5e, prop:'forest', wx:{col:0xff2e44,mode:'fall',speed:0.5,sway:0.15,dens:0.9,size:0.18}, rumor:'Under the red moon the trees drink deep. Spill no blood you can spare.', beat:'Under the red moon a king drinks what the living spill.' },
+    accent:0xff4d5e, prop:'bloodmoon', wx:{col:0xff2e44,mode:'fall',speed:0.5,sway:0.15,dens:0.9,size:0.18}, awaken:'blooddraught', rumor:'Under the red moon the trees drink deep. Spill no blood you can spare.', beat:'Under the red moon a king drinks what the living spill.' },
   { name:'Gilded Sanctum',
     fog:0x1c1810, sky:[0x161009,0x3e3018,0x201808], hemiSky:0xd8c080, hemiGround:0x241c10,
     sun:0xffe6a8, sunInt:0.9, ground:'#33291a', groundDark:'#1c160d',
@@ -86,6 +86,8 @@ export const ENEMY_TYPES = [
   {id:'revenant',name:'Frostbound Revenant', tag:'frost burst · dodge the chill', shape:'revenant', biome:3, behavior:'frost', hpM:1.5, dmgM:1.35, tel:1.05, col:0x1c3340, standZ:4.6},
   // biome 4 — Astral Verge: "stars fall upward; do not follow them"
   {id:'acolyte', name:'Star-Eaten Acolyte', tag:'blinks — it strikes from nowhere', shape:'float', biome:4, behavior:'blink', hpM:1.1, dmgM:1.25, tel:0.78, col:0x2a1442, standZ:5.0},
+  // biome 5 — Bloodmoon Grove: "the trees drink deep; spill no blood you can spare"
+  {id:'sanguine', name:'Sanguine Thrall', tag:'drinks your blood to heal — end it fast', shape:'beast', biome:5, behavior:'leech', hpM:1.3, dmgM:1.2, tel:0.82, col:0x3a0a12, standZ:6.0},
 ];
 
 // ---- act bosses ----
@@ -97,6 +99,7 @@ export const BOSS_TYPES = {
   dungeon: {id:'bossD', name:'The Cinder Tyrant', tag:'ACT BOSS', shape:'hulk',   behavior:'charger', hpM:1.2, dmgM:1.1, tel:0.85, col:0x2a1810, recovery:0.5, standZ:6.5},
   Frostfen:{id:'bossFr',name:'The Hoarfrost Warden', tag:'ACT BOSS · frost', shape:'knight', behavior:'frost', hpM:1.15, dmgM:1.0, tel:1.1, col:0x244355, recovery:0.5},
   'Astral Verge':{id:'bossAv',name:'The Verge Warden', tag:'ACT BOSS · blink', shape:'caster', behavior:'blink', hpM:1.1, dmgM:1.05, tel:0.85, col:0x3a1a5e},
+  'Bloodmoon Grove':{id:'bossBm',name:'The Crimson Warden', tag:'ACT BOSS · leech', shape:'hulk', behavior:'leech', hpM:1.2, dmgM:1.05, tel:0.9, col:0x4a0a14, recovery:0.45},
 };
 
 // ---- weapon definitions ----

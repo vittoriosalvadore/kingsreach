@@ -596,6 +596,12 @@ function buildLandmark(b){
     const mono=new THREE.Mesh(new THREE.BoxGeometry(3,18,3),mat(0x180a2e,{r:.5,m:.3,e:0x4a2a7a,ei:.4,map:TEX.stone}));mono.position.y=9;mono.rotation.y=.4;g.add(mono);
     const rift=new THREE.Mesh(new THREE.SphereGeometry(2.4,12,10),mat(0x150826,{e:0xc070ff,ei:2.4}));rift.position.y=15;g.add(rift);g.userData.flame=rift;
     for(let i=0;i<5;i++){ const sh=new THREE.Mesh(new THREE.TetrahedronGeometry(rand(.5,1.0)),mat(0x2a1442,{e:0xc9a8ff,ei:1.2}));sh.position.set(rand(-5,5),rand(3,16),rand(-3,3));g.add(sh); }
+  } else if(b.prop==='bloodmoon'){
+    // a vast blood-drunk tree beneath a swollen red moon
+    const tr=new THREE.Mesh(new THREE.CylinderGeometry(.9,2.0,19,7),mat(0x180810,{r:1,map:TEX.bark,bump:TEX.bark,bumpScale:.04}));tr.position.y=9.5;g.add(tr);
+    const c=new THREE.Mesh(new THREE.SphereGeometry(5.5,7,6),mat(0x3a060e,{e:0x8a0e1a,ei:.5}));c.position.y=16;c.scale.y=.7;g.add(c);
+    const moon=new THREE.Mesh(new THREE.SphereGeometry(2.6,12,10),mat(0x2a0408,{e:0xff2e44,ei:2.4}));moon.position.set(2.5,20,-3);g.add(moon);g.userData.flame=moon;
+    for(let i=0;i<5;i++){ const d=new THREE.Mesh(new THREE.SphereGeometry(rand(.3,.6),6,5),mat(0x2a0408,{e:0xff4d5e,ei:1.2}));d.position.set(rand(-6,6),rand(2,14),rand(-3,3));g.add(d); }
   } else {
     const tr=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.8,20,7),mat(0x14110c,{r:1,map:TEX.bark,bump:TEX.bark,bumpScale:.03}));tr.position.y=10;g.add(tr);
     const c=new THREE.Mesh(new THREE.SphereGeometry(5.5,7,6),mat(0x16241a,{r:1}));c.position.y=17;c.scale.y=.7;g.add(c);
@@ -1328,6 +1334,19 @@ const POWERS = {
         const sx=g?g.position.x:G.x, sz=g?g.position.z:G.z-2.6; burst(sx,1.3,sz,{color:0xd8b0ff,n:16,spd:5,life:.5});
         floatDmg(dmg,{cls:'crit',text:'✦'+dmg,color:'#d8b0ff'}); ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
         if(e.hp<=0) killEnemy(); } } },
+  blooddraught: { id:'blooddraught', name:'Blooddraught', icon:'🩸', cd:8,
+    use(){ // turn the grove's hunger back on it: drain the foe, drink the wound shut
+      const e=G.enemy, g=G.eGrp; if(!e) return;
+      const dmg=Math.round(G.atk*1.35); e.hp-=dmg;
+      const heal=Math.round(dmg*0.7); G.hp=Math.min(G.maxHp, G.hp+heal);
+      const sx=g?g.position.x:G.x, sz=g?g.position.z:G.z-2.6;
+      audio('smite'); shock(sx,sz,0xff2e44,5.2); G.camKick=Math.max(G.camKick,0.5);
+      burst(sx,1.3,sz,{color:0xff2e44,n:24,spd:5,life:.6,up:true,grav:5}); burst(sx,1.3,sz,{color:0x7a0e18,n:10,spd:3,life:.5});
+      burst(G.x,1.2,G.z,{color:0xff6a78,n:16,spd:3,life:.5,up:true,grav:4});
+      floatDmg(dmg,{cls:'crit',text:'🩸'+dmg,color:'#ff4d5e'}); floatDmg(heal,{top:52,color:'#ff8a96',text:'+'+heal});
+      ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
+      if(e.hp<=0) killEnemy();
+    } },
 };
 function activePower(){ for(const id of G.awakenings){ if(POWERS[id]) return POWERS[id]; } return null; }
 function onPower(){
@@ -1565,6 +1584,20 @@ const BEHAVIOR = {
         burst(g.position.x,1.2,g.position.z,{color:0xc070ff,n:14,spd:4,life:.4,up:true}); }
       if(e.windup<=0){ e._blinked=false; g.position.x=lerp(g.position.x,0,0.6); audio('jab'); enemyHit(e,1); e.atkT=rand(1.3,2.2); }
     } else { e.atkT-=dt; g.position.x=lerp(g.position.x,0,dt*4); if(e.atkT<=0) e.windup=e.tel; }
+  },
+  leech(e,g,dt,tz){
+    // blood-drunk grove thrall: lunges to bite, and any blood it draws heals it.
+    // dodging (i-frames) denies the bite entirely — so it heals nothing.
+    if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel; g.scale.setScalar((e.sc)*(1+k*0.14));
+      g.userData.mats.forEach(m=>m.emissiveIntensity=.1+k*1.8); g.position.z=lerp(tz,G.z-1.3,k);
+      if(e.windup<=0){ g.scale.setScalar(e.sc); g.userData.mats.forEach(m=>m.emissiveIntensity=.08);
+        const before=G.hp; enemyHit(e,1); const drawn=Math.max(0,before-G.hp);
+        if(drawn>0 && e.hp<e.max){ const heal=Math.max(1,Math.round(drawn*0.6)); e.hp=Math.min(e.max,e.hp+heal);
+          ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%'; audio('heal');
+          burst(g.position.x,1.3,g.position.z,{color:0xff2e44,n:12,spd:3,life:.5,up:true,grav:6});
+          floatDmg(heal,{top:34,color:'#ff6a78',text:'+'+heal}); }
+        e.atkT=rand(1.4,2.4); }
+    } else { e.atkT-=dt; if(e.atkT<=0) e.windup=e.tel; }
   },
   hexer(e,g,dt,tz){
     if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel;
