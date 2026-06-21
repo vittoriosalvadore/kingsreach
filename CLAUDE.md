@@ -58,6 +58,13 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
 - **`src/audio.js`** — all procedural Web Audio: `audio(kind)`, `audioStart`, `startTownMusic`/
   `stopTownMusic`, `startShopAmbience`/`stopShopAmbience`. A call-graph leaf — nothing here reads
   game state or the scene, so it has zero imports.
+- **`src/scene.js`** — the Three.js foundation: the live quality/brightness config (`Q`, `B` —
+  their `.key` field tracks the current preset), `renderer`, `scene`, `camera`, `weaponScene`/
+  `weaponCam`, the lights (`hemi`, `sun`, `accentLight`, `enemyKey`/`enemyRim`, `townLight`/
+  `townFill`, `wkey`), the procedural `sky`/`skyUniforms`, `gameEl`/`canvas`, `bootAA`, `RETRO_W`.
+  Imports only THREE + leaf modules (`helpers`, `data`); creates the GL objects on load. The big
+  reconfig functions (`applyQuality`/`applyBright`) stay in `index.html` and mutate the imported
+  `Q`/`B` via `Object.assign` (so don't reintroduce a separate `QKEY`/`BKEY` — use `Q.key`/`B.key`).
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
