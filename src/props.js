@@ -69,6 +69,20 @@ function buildDungeonProp(){ const r=Math.random();
   if(r<.65) return spriteProp(propRec('d_bones',24,15,dBones), rand(1.2,1.8));
   if(r<.85){ const g=new THREE.Group(); const lp=new THREE.Mesh(new THREE.CircleGeometry(rand(1,2.2),10), new THREE.MeshBasicMaterial({map:propRec('d_lava',24,24,dLava).tex,transparent:true,fog:true,depthWrite:false})); lp.rotation.x=-Math.PI/2; lp.position.y=0.04; g.add(lp); return g; }
   return spriteProp(propRec('d_brazier',12,24,dBrazier), rand(2.2,3)); }
-const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp };
+// ---- Frostfen: frozen dead, rime, ice ----
+function dIceSpire(x,W,H){ const P=PX(x),cx=W>>1; const ic='#9fc8e0',icL='#dff0fb',icD='#5f86a0',cr='#bfe8ff';
+  for(let y=2;y<H;y++){ const t=(y-2)/(H-3),w=Math.max(1,Math.round(t*(W/2-1))); for(let i=-w;i<=w;i++)P(cx+i,y,1,1, i<-w+2?icD:(i>w-2?icL:ic)); }
+  for(let i=0;i<5;i++)P(cx-1+((i*7)%3),(H*0.3)+(i*9)%((H*0.55)|0),1,1,cr); }            // glints
+function dFrozenStump(x,W,H){ const P=PX(x),cx=W>>1; const wd='#3a4a52',wdD='#222e34',sn='#eaf4ff',snD='#bcd2e0';
+  for(let y=H-1;y>H*0.45;y--){ const w=Math.max(1,4-((H-1-y)/H)*2); for(let i=-w;i<=w;i++)P(cx+i,y,1,1, i<0?wdD:wd); }
+  for(let i=-5;i<=5;i++)P(cx+i,(H*0.45)|0,1,2,(i&1)?snD:sn);                              // snow cap
+  P(cx-2,(H*0.5)|0,4,2,wdD); }
+function dCairn(x,W,H){ const P=PX(x),cx=W>>1; const st='#6a7a84',stL='#93a6b0',stD='#3c4a52',ice='#cfe8f6';
+  let y=H-1, w=6; while(y>4 && w>1){ for(let i=-w;i<=w;i++)P(cx+i,y-1,1,2, i<-w+1?stD:(i>w-1?stL:st)); P(cx-w,y-1,1,1,ice); y-=3; w--; } }
+function buildFrostfenProp(){ const r=Math.random();
+  if(r<.5)  return spriteProp(propRec('fr_spire',16,34,dIceSpire), rand(2.4,5.5));
+  if(r<.8)  return spriteProp(propRec('fr_stump',20,16,dFrozenStump), rand(1.1,1.8));
+  return spriteProp(propRec('fr_cairn',16,18,dCairn), rand(1.0,1.6)); }
+const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp };
 
 export { PROP_FN, PX };

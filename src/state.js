@@ -18,7 +18,7 @@ export const G = {
   hurtT:0, bob:0, camKick:0, pendingLoot:null,
   lastWasFork:false, townNPC:null, townT:0, firstTown:true, shopType:null,
   potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65,
-  hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false,
+  hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0,
 };
 
 // run-structure / balance constants
