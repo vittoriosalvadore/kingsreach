@@ -19,6 +19,7 @@ const SHELL = [
   './src/state.js',
   './src/meta.js',
   './src/audio.js',
+  './src/scene.js',
   './',
   './index.html',
   './manifest.json',
