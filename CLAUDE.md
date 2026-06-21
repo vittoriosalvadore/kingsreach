@@ -72,6 +72,9 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   ground `shock`wave, the enemy attack `updateTelegraph`, ambient `weather` (+ the live `WX` config),
   drifting `mist`, and the weapon `slashArc`. Imports the scene/state/texture foundations + helpers/
   data. The combat/loop code calls `burst`/`shock`/the `update*` functions.
+- **`src/gear.js`** — loot generation: `rollRarity`, `makeWeaponItem`, `makeGear`, `genGear`, and the
+  stat-display helpers (`statShort`/`statRows`). Pure logic over the data tables — imports only
+  `helpers` + `data` (`RAR`/`SLOTS`/`WEAPON_DEF`).
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
