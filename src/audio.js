@@ -2,7 +2,13 @@
 // self-contained (Web Audio API only): nothing here reads game state or the
 // scene, so the module has no imports. The rest of the game calls these.
 
-let AC=null,wind=null;
+let AC=null,wind=null,musicBus=null;
+// All music voices route through a swappable "music bus" gain so a stop/switch can
+// fade the bus to silence in ~0.12s — cutting notes that are still ringing (long
+// pads/sub) instead of letting them bleed over the next track. SFX bypass this.
+function musOut(){ return musicBus || (AC && AC.destination); }
+function _fadeBus(b){ if(!b||!AC) return; try{ const n=AC.currentTime; b.gain.cancelScheduledValues(n); b.gain.setValueAtTime(b.gain.value,n); b.gain.linearRampToValueAtTime(0.0001,n+0.12); setTimeout(()=>{ try{ b.disconnect(); }catch(e){} }, 500); }catch(e){} }
+function _newBus(){ if(!AC) return; _fadeBus(musicBus); musicBus=AC.createGain(); musicBus.gain.value=1; musicBus.connect(AC.destination); }
 export function audioStart(){ if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)();
   const buf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=buf.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.5;
@@ -16,51 +22,51 @@ function tone(type,f0,f1,t0,dur,vol){ if(!AC)return; const t=AC.currentTime+t0; 
 // ---- music: structured ~1-minute songs (intro → repeated hook → bridge →
 // resolve) that loop, not endless 1-bar patterns. A single engine plays one
 // song at a time (so the tracks are mutually exclusive). All synthesized,
-// Megabonk-style chiptune, kept below SFX volume. ----
+// energetic chiptune/synthwave, kept below SFX volume. ----
 function softNote(f,dur,vol){ if(!AC)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(AC.destination);
+  o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(musOut());
   g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
   o.start(t); o.stop(t+dur+0.05); }
 // ---- drum & synth voices shared by every song ----
 function kick(t,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain();
   o.type='sine'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(45,t+0.11);
   g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.16);
-  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.18); }
+  o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+0.18); }
 function hat(t,vol,dur){ if(!AC)return; const buf=AC.createBuffer(1,(AC.sampleRate*dur)|0,AC.sampleRate); const d=buf.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1); const s=AC.createBufferSource(); s.buffer=buf;
   const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=7000; const g=AC.createGain();
   g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
-  s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); s.stop(t+dur+0.02); }
+  s.connect(f); f.connect(g); g.connect(musOut()); s.start(t); s.stop(t+dur+0.02); }
 function snare(t,vol){ if(!AC)return; const buf=AC.createBuffer(1,(AC.sampleRate*0.18)|0,AC.sampleRate); const d=buf.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1); const s=AC.createBufferSource(); s.buffer=buf;
   const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1900; f.Q.value=0.7; const g=AC.createGain();
   g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.17);
-  s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); s.stop(t+0.2); }
+  s.connect(f); f.connect(g); g.connect(musOut()); s.start(t); s.stop(t+0.2); }
 function seqNote(type,f,t,dur,vol,detune){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain();
   o.type=type; o.frequency.setValueAtTime(f,t); if(detune)o.detune.value=detune;
   g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.012); g.gain.exponentialRampToValueAtTime(0.0006,t+dur);
-  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02); }
+  o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+dur+0.02); }
 const NOTE=n=>110*Math.pow(2,n/12);   // semitone offset from A2
 // ---- expanded synth palette (all schedule at the given time t; richer voices) ----
 function env(g,t,a,d,vol){ g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+a); g.gain.exponentialRampToValueAtTime(0.0006,t+d); }
-function psaw(f,t,dur,vol,spread){ if(!AC)return; const g=AC.createGain(); g.connect(AC.destination); env(g,t,0.012,dur,vol);   // thick detuned "supersaw" — big OOMPH
+function psaw(f,t,dur,vol,spread){ if(!AC)return; const g=AC.createGain(); g.connect(musOut()); env(g,t,0.012,dur,vol);   // thick detuned "supersaw" — big OOMPH
   const det=spread||14; for(const c of [-det,0,det]){ const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(f,t); o.detune.value=c; o.connect(g); o.start(t); o.stop(t+dur+0.03); } }
 function pluck(f,t,dur,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type='square'; o.frequency.setValueAtTime(f,t);   // percussive chiptune pluck
-  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0006,t+dur); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02); }
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0006,t+dur); o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+dur+0.02); }
 function sub(f,t,dur,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type='sine'; o.frequency.setValueAtTime(f,t);   // pure sine sub-bass for low-end power
-  env(g,t,0.01,dur,vol); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.03); }
-function pad(f,t,dur,vol){ if(!AC)return; const g=AC.createGain(); const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1500; lp.connect(AC.destination); g.connect(lp);   // warm slow pad
+  env(g,t,0.01,dur,vol); o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+dur+0.03); }
+function pad(f,t,dur,vol){ if(!AC)return; const g=AC.createGain(); const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1500; lp.connect(musOut()); g.connect(lp);   // warm slow pad
   g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+dur*0.4); g.gain.linearRampToValueAtTime(0.0006,t+dur);
   for(const c of [0,7]){ const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.value=f*Math.pow(2,c/12); o.detune.value=(c?6:-6); o.connect(g); o.start(t); o.stop(t+dur+0.05); }
   const o2=AC.createOscillator(); o2.type='triangle'; o2.frequency.value=f; o2.connect(g); o2.start(t); o2.stop(t+dur+0.05); }
 function bell(f,t,dur,vol){ if(!AC)return; const o=AC.createOscillator(),m=AC.createOscillator(),mg=AC.createGain(),g=AC.createGain();   // FM bell/chime (calm shimmer)
   o.type='sine'; o.frequency.value=f; m.type='sine'; m.frequency.value=f*2.01; mg.gain.value=f*1.2; m.connect(mg); mg.connect(o.frequency);
-  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0005,t+dur); o.connect(g); g.connect(AC.destination); o.start(t); m.start(t); o.stop(t+dur+0.05); m.stop(t+dur+0.05); }
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0005,t+dur); o.connect(g); g.connect(musOut()); o.start(t); m.start(t); o.stop(t+dur+0.05); m.stop(t+dur+0.05); }
 function tom(t,f,vol){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type='sine'; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(Math.max(40,f*0.5),t+0.18);   // pitched tom (boss fills)
-  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+0.22); }
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(musOut()); o.start(t); o.stop(t+0.22); }
 function noiseHit(t,vol,dur,freq){ if(!AC)return; const b=AC.createBuffer(1,(AC.sampleRate*dur)|0,AC.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);   // filtered noise (crash / riser)
   const s=AC.createBufferSource(); s.buffer=b; const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq||1200; f.Q.value=0.6; const g=AC.createGain();
-  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); s.stop(t+dur+0.02); }
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f); f.connect(g); g.connect(musOut()); s.start(t); s.stop(t+dur+0.02); }
 // ---- arrangement helpers: build a full ~1-minute timeline from short motifs ----
 const seqc=(...p)=>[].concat(...p);                            // concatenate sections into one timeline
 const rep=(a,n)=>{ let o=[]; for(let i=0;i<n;i++) o=o.concat(a); return o; };   // repeat a section (the hook)
@@ -68,11 +74,12 @@ const rep=(a,n)=>{ let o=[]; for(let i=0;i<n;i++) o=o.concat(a); return o; };   
 // ---- the single song engine: one track at a time; arrangements loop (~1 min) ----
 let songTimer=null, songStep=0, curSong=null;
 function playSong(id,song){ if(!AC || curSong===id) return; if(songTimer) clearInterval(songTimer);
+  _newBus();   // fresh bus; the old one (with any ringing notes) fades out independently
   curSong=id; songStep=0;
   songTimer=setInterval(()=>{ song.voice(AC.currentTime+0.02, songStep%song.len, songStep); songStep++; }, song.ms); }
-function stopSong(id){ if(curSong!==id) return; if(songTimer){ clearInterval(songTimer); songTimer=null; } curSong=null; }
-// stop whatever song is playing (handy on title/death/state resets)
-export function stopAllMusic(){ if(songTimer){ clearInterval(songTimer); songTimer=null; } curSong=null; }
+function stopSong(id){ if(curSong!==id) return; if(songTimer){ clearInterval(songTimer); songTimer=null; } _fadeBus(musicBus); musicBus=null; curSong=null; }
+// stop whatever song is playing (handy on title/death/state resets) — fades the bus so nothing rings on
+export function stopAllMusic(){ if(songTimer){ clearInterval(songTimer); songTimer=null; } _fadeBus(musicBus); musicBus=null; curSong=null; }
 
 // ============================================================================
 //  SONGS — a shared synthwave builder keeps every track COHERENT: the bed
@@ -188,13 +195,15 @@ const FOREST = makeSong({ ms:132, bars:28, mode:'drive', arp:'pluck16', leadV:'s
   chords:[[5,8,12],[3,7,10],[-2,2,5],[5,8,12]], bass:[-7,-9,-14,-7],
   lead: seqc(rep(R16,4), rep(A_FOREST,6)) });
 
-// ===== MORNING — "Morning Bonk": bright, cheerful, chill-pop (C–Am–F–G) =====
+// ===== MORNING — "Gilded Dawn": bright, cheerful, chill-pop (C–Am–F–G) =====
+// A clear, repeated rhythmic cell (note · quick up-down · note) over I–vi–IV–V,
+// mostly stepwise so it's singable; arp thinned to 8ths so the hook stays on top.
 const A_MORNING=[
-  27,null,31,null, 22,null,27,null, 31,null,29,null, 27,null,null,null,
-  24,null,27,null, 31,null,27,null, 24,null,26,null, 27,null,null,null,
-  24,null,null,null, 27,null,24,null, 20,null,22,null, 24,null,null,null,
-  22,null,26,null, 29,null,26,null, 22,null,24,null, 26,null,null,null];
-const MORNING = makeSong({ ms:132, bars:28, mode:'soft', arp:'pluck16', leadV:'square', shimmer:true, lift:true,
+  22,null,null,null, 27,null,26,null, 27,null,null,null, 31,null,null,null,
+  24,null,null,null, 27,null,26,null, 24,null,null,null, 19,null,null,null,
+  24,null,null,null, 27,null,29,null, 27,null,null,null, 24,null,null,null,
+  22,null,null,null, 26,null,29,null, 26,null,null,null, 22,null,null,null];
+const MORNING = makeSong({ ms:132, bars:28, mode:'soft', arp:'gentle8', leadV:'square', shimmer:true, lift:true,
   chords:[[3,7,10],[0,3,7],[-4,0,3],[-2,2,5]], bass:[-9,-12,-16,-14],
   lead: rep(A_MORNING,7) });
 
