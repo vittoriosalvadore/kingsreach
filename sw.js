@@ -16,6 +16,7 @@ const SHELL = [
   './vendor/three/three.module.js',
   './src/helpers.js',
   './src/data.js',
+  './src/state.js',
   './',
   './index.html',
   './manifest.json',

@@ -47,8 +47,11 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   `easeOut`, `easeIn`, `ROMAN`, `toRoman`.
 - **`src/data.js`** — pure data tables with no game-state/Three.js deps: `QPRESETS`, `BPRESETS`,
   `SOUL_UPG`, `BIOMES`, `TOD`, `SEASON`, `ENEMY_TYPES`, `BOSS_TYPES`, `WEAPON_DEF`, `RAR`, `SLOTS`.
-  The behavior that reads these (`recalc`, `makeGear`, `pickEnemyType`, `applyQuality`, …) stays
-  in `index.html`.
+  The behavior that reads these (`makeGear`, `pickEnemyType`, `applyQuality`, …) stays in `index.html`.
+- **`src/state.js`** — the shared mutable run state `G` (exported as a live object binding, so every
+  module shares the same instance), the run-balance constants (`ACT_NODES`, `FORK_CHANCE`,
+  `ELITE_BASE`, `POTION_CAP`), `EQUIP_SLOTS`, and `recalc`/`tickBuffs`. Depends only on `data.js`
+  (`WEAPON_DEF`), so no circular imports.
 
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
