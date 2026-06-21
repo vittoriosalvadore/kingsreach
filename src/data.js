@@ -41,7 +41,7 @@ export const BIOMES = [
   { name:'Frostfen',
     fog:0x16242e, sky:[0x0e2236,0x36586e,0x1a2e3a], hemiSky:0x9fc8e0, hemiGround:0x20303a,
     sun:0xdfeeff, sunInt:0.85, ground:'#2a3a44', groundDark:'#16242c',
-    accent:0x8fe0ff, prop:'frostfen', wx:{col:0xbfe8ff,mode:'drift',speed:0.6,sway:0.7,dens:1.0,size:0.14}, rumor:'The cold keeps the dead fresh. They do not rot. They wait.', beat:'The cold king does not rot. He waits, and counts the fallen.' },
+    accent:0x8fe0ff, prop:'frostfen', wx:{col:0xbfe8ff,mode:'drift',speed:0.6,sway:0.7,dens:1.0,size:0.14}, awaken:'rimebrand', rumor:'The cold keeps the dead fresh. They do not rot. They wait.', beat:'The cold king does not rot. He waits, and counts the fallen.' },
   { name:'Astral Verge',
     fog:0x140a22, sky:[0x0a061a,0x2a1448,0x140a26], hemiSky:0x9a6ad0, hemiGround:0x1a1030,
     sun:0xd8b0ff, sunInt:0.8, ground:'#241836', groundDark:'#120a1e',
