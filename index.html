@@ -328,6 +328,7 @@
     <div class="subtitle">A cursed-road RPG</div>
     <div class="title">KINGSREACH</div>
     <div class="body">Rest in the waystation, then walk the haunted road. Talk to its folk, buy <b>armor</b>, <b>trinkets</b> and <b>potions</b>, then face what waits in the dark — <b>strike</b>, <b>dodge</b>, <b>drink</b>, and <b>Smite</b>. Descend, land by land, as deep as you dare.</div>
+    <button id="continueBtn" class="cta hidden">CONTINUE THE PILGRIMAGE</button>
     <button id="beginBtn" class="cta">ENTER KINGSREACH</button>
     <div class="hint">STRIKE · DODGE · SMITE · POTION &nbsp;·&nbsp; desktop: SPACE · SHIFT/← → · F · Q</div>
     <div class="perflbl">Graphics quality</div>
@@ -460,7 +461,7 @@ import * as THREE from 'three';
 import { $, clamp, lerp, rand, randi, pick, chance, shuffle, easeOut, easeIn, ROMAN, toRoman, shade } from './src/helpers.js';
 import { QPRESETS, BPRESETS, SOUL_UPG, BIOMES, TOD, SEASON, ENEMY_TYPES, BOSS_TYPES, WEAPON_DEF, RAR, SLOTS } from './src/data.js';
 import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc, tickBuffs } from './src/state.js';
-import { META, saveMeta } from './src/meta.js';
+import { META, saveMeta, saveJourney, loadJourney, clearJourney } from './src/meta.js';
 import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience } from './src/audio.js';
 import { Q, B, bootAA, RETRO_W, gameEl, canvas, renderer, scene, camera, weaponScene, weaponCam,
   skyUniforms, sky, hemi, sun, accentLight, enemyKey, enemyRim, townLight, townFill, wkey, mat, csshex } from './src/scene.js';
@@ -1556,6 +1557,7 @@ function equipItem(it){
   if(it.slot==='weapon'){ G.equip.weapon=it; setWeapon(it.wtype); }
   else { G.equip[it.slot]=it; }
   const prevMax=G.maxHp; recalc(); if(G.maxHp>prevMax) G.hp+=(G.maxHp-prevMax);
+  if(G.state!=='title') persistJourney();   // new gear is remembered at once
 }
 function doEquip(){ const it=G.pendingLoot; if(!it) return; equipItem(it); flashLog(`Equipped ${it.name}`); closeLoot(); }
 function doSell(){ const it=G.pendingLoot; if(!it)return; G.gold+=it.value; flashLog(`Sold for ◈${it.value}`); closeLoot(); }
@@ -1689,6 +1691,7 @@ function enterTown(){
   buildPerfRow($('townPerf')); buildBrightRow($('townBright'));
   $('townSouls').textContent = '⟡ '+META.souls+' souls';
   show('townOv'); audio('townbell'); startTownMusic(); refreshHUD();
+  persistJourney();   // the waystation records your pilgrimage
 }
 function openSoulShrine(){
   G.state='shop'; hide('townOv');
@@ -1833,7 +1836,38 @@ function startGame(){
   hideAllOverlays(); audioStart();
   enterTown();
 }
-bindBtn($('beginBtn'),startGame);
+// ---- persistent pilgrimage: save at the waystation, resume from the title ----
+function journeySnapshot(){
+  return { v:1, act:G.act, gold:G.gold, kills:G.kills, awardKills:G._awardKills||0, awardDepth:G._awardDepth||0,
+    weaponType:G.weaponType, equip:G.equip, potionIds:G.potions.map(p=>p.id) };
+}
+function persistJourney(){ saveJourney(journeySnapshot()); }
+function newPilgrimage(){ clearJourney(); startGame(); }
+function continueJourney(){
+  const j=loadJourney(); if(!j){ startGame(); return; }
+  Object.assign(G,{state:'town',z:0,x:0,depth:0,hp:100,baseHp:100+META.upg.hp*15,
+    act:j.act,actNodes:0,firstNode:true,nodeAt:9,lootBoost:0,focus:0,revealT:0,
+    permAtk:META.upg.atk*2,permHp:0,permDef:0,permSpeed:0,
+    strikeCd:0,dodgeCd:0,iframes:0,dodgeX:0,swingT:0,swinging:false,_hitDone:false,hurtT:0,
+    enemy:null,eGrp:null,pendingLoot:null,event:null,
+    lastWasFork:false,townNPC:null,townT:0,firstTown:false,shopType:null,
+    gold:j.gold,kills:j.kills,potions:[],tempBuffs:[],atkDebuffT:0,atkDebuffMul:0.65,
+    hitStop:0,combo:0,comboT:0,fovKick:0,slowmo:0,perfCd:0,bossFight:false,chillT:0,
+    _awardKills:j.awardKills,_awardDepth:j.awardDepth});
+  G.equip=j.equip;
+  rollBiomeOrder();
+  for(const id of j.potionIds){ const p=POTIONS.find(x=>x.id===id); if(p) G.potions.push(p); }
+  recalc(); G.hp=G.maxHp; G._awarded=false;
+  for(const p of PROP_POOL) disposeProp(p); PROP_POOL.length=0; frontier=0; generateAhead(-Q.dist);
+  if(G.eGrp){scene.remove(G.eGrp);G.eGrp=null;} clearProjectiles();
+  setWeapon(G.equip.weapon.wtype||'sword');
+  $('revealOv').classList.remove('show');
+  ui.eplate.style.opacity=0; ui.smite.classList.remove('ready'); ui.potionTray.classList.remove('show');
+  hideAllOverlays(); audioStart();
+  enterTown();
+}
+bindBtn($('beginBtn'),newPilgrimage);
+bindBtn($('continueBtn'),continueJourney);
 bindBtn($('restartBtn'),reviveAtWaystation);
 function die(){
   if(G.state==='dead') return;
@@ -2017,11 +2051,13 @@ generateAhead(-Q.dist);
 applyQuality(Q.key);
 applyBright(B.key);
 refreshHUD();
+// offer to resume a saved pilgrimage from the title
+(function(){ const j=loadJourney(); if(j){ const cb=$('continueBtn'); cb.textContent='CONTINUE — ACT '+j.act; cb.classList.remove('hidden'); $('beginBtn').textContent='NEW PILGRIMAGE'; } })();
 requestAnimationFrame(frame);
 window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, curBiome, nextBiome,
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
   arriveAtNode, openFork, chooseNode, startFight, spawnEnemy, startBoss, openLoot, beginReveal, endReveal,
-  die, reviveAtWaystation,
+  die, reviveAtWaystation, persistJourney, continueJourney, newPilgrimage, loadJourney, clearJourney,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
   setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
 console.log('[Kingsreach] booted v3 — town + roster + potions');
