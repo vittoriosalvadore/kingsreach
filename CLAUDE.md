@@ -55,9 +55,17 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
 - **`src/meta.js`** — persistent meta-progression: `META` (live binding), `loadMeta` (with the
   corrupt-save validation that clamps every field — keep it when changing the schema), `saveMeta`,
   `SAVE_KEY`, `META_DEFAULT`. Depends only on `helpers.js` (`clamp`) and `data.js` (`SOUL_UPG`).
-- **`src/audio.js`** — all procedural Web Audio: `audio(kind)`, `audioStart`, `startTownMusic`/
-  `stopTownMusic`, `startShopAmbience`/`stopShopAmbience`. A call-graph leaf — nothing here reads
-  game state or the scene, so it has zero imports.
+- **`src/audio.js`** — all procedural Web Audio: `audio(kind)` SFX, `audioStart`, `startShopAmbience`/
+  `stopShopAmbience`, and the **music engine**. Music is a single-track engine (`playSong`/`stopSong`,
+  one `setInterval` — starting a song auto-stops the previous, so tracks are mutually exclusive) plus
+  a shared synth-voice palette (`kick`/`hat`/`snare`/`tom`/`sub`/`pluck`/`psaw`/`pad`/`bell`/`seqNote`/
+  `softNote`, pitched via `NOTE(n)`; arrange with `seqc`/`rep`). Each track is an IIFE returning a
+  `{ms,len,voice(t,s)}` ~1-minute song (intro→hook→bridge→resolve, then loops): `MENU`, `TOWN`,
+  `BATTLE`, `BOSS`, `LAMENT`, `FOREST`, `MORNING`, `EMBER`, `ASTRAL`, each exported as `start*Music`/
+  `stop*Music`. `musicSelfTest()` runs every song's `voice` across a full loop (used by the smoke
+  test to catch runtime errors). The game wires these in `index.html`: the title shows the in-game
+  **Jukebox** (audition any track) and combat picks a per-biome road theme via `roadMusic()`; boss
+  fights use `BOSS`. A call-graph leaf — nothing here reads game state or the scene, so it has zero imports.
 - **`src/scene.js`** — the Three.js foundation: the live quality/brightness config (`Q`, `B` —
   their `.key` field tracks the current preset), `renderer`, `scene`, `camera`, `weaponScene`/
   `weaponCam`, the lights (`hemi`, `sun`, `accentLight`, `enemyKey`/`enemyRim`, `townLight`/

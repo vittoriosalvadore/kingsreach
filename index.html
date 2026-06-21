@@ -481,7 +481,7 @@ import { $, clamp, lerp, rand, randi, pick, chance, shuffle, easeOut, easeIn, RO
 import { QPRESETS, BPRESETS, SOUL_UPG, BIOMES, TOD, SEASON, ENEMY_TYPES, BOSS_TYPES, WEAPON_DEF, RAR, SLOTS } from './src/data.js';
 import { G, ACT_NODES, FORK_CHANCE, ELITE_BASE, POTION_CAP, EQUIP_SLOTS, recalc, tickBuffs } from './src/state.js';
 import { META, saveMeta, saveJourney, loadJourney, clearJourney } from './src/meta.js';
-import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience, startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, startLamentMusic, stopLamentMusic, stopAllMusic } from './src/audio.js';
+import { audio, audioStart, startTownMusic, stopTownMusic, startShopAmbience, stopShopAmbience, startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, startLamentMusic, stopLamentMusic, startMenuMusic, stopMenuMusic, startForestMusic, stopForestMusic, startMorningMusic, stopMorningMusic, startEmberMusic, stopEmberMusic, startAstralMusic, stopAstralMusic, stopAllMusic, musicSelfTest } from './src/audio.js';
 import { Q, B, bootAA, RETRO_W, gameEl, canvas, renderer, scene, camera, weaponScene, weaponCam,
   skyUniforms, sky, hemi, sun, accentLight, enemyKey, enemyRim, townLight, townFill, wkey, mat, csshex } from './src/scene.js';
 import { TEX } from './src/textures.js';
@@ -1444,7 +1444,7 @@ function spawnEnemy(kind='normal'){
   ui.ename.textContent=G.enemy.name; ui.ename.style.color = boss?'#ff8a5a':elite?'#ffcf6a':'#e9d6d2';
   ui.etag.textContent=G.enemy.tag; ui.eplate.style.opacity=1; ui.ehp.style.width='100%';
   if(boss){ audio('boss'); flashLog('A guardian bars the road — '+t.name); startBossMusic(); }
-  else startBattleMusic();
+  else roadMusic();
   G.state='combat';
 }
 const bolts=[];
@@ -1524,7 +1524,7 @@ function killEnemy(){
     // take the guardian's power — the road's curse waking further in you
     const aw=curBiome().awaken;
     if(aw && POWERS[aw] && !G.awakenings.includes(aw)){ G.awakenings.push(aw); flashLog('You take the Guardian’s power — '+POWERS[aw].name); persistJourney(); }
-    startBattleMusic();   // guardian down — back to the road theme through loot/reveal
+    roadMusic();   // guardian down — back to the road theme through loot/reveal
   }
   const g=G.eGrp; const t0=performance.now();
   if(g){ const gl=G.enemy.glow; const mul=boss?2.2:1;
@@ -1855,12 +1855,26 @@ function openSoulShrine(){
 function leaveSoulShrine(){ hide('soulOv'); G.state='town'; $('townSouls').textContent='⟡ '+META.souls+' souls'; show('townOv'); }
 bindBtn($('soulBtn'), openSoulShrine);
 bindBtn($('leaveSoulBtn'), leaveSoulShrine);
+// ---- per-biome road/combat theme: each land gets its own banger (boss is always The Guardian) ----
+function roadMusic(){
+  const n=curBiome().name;
+  if(n==='Emberdeep') startEmberMusic();
+  else if(n==='Astral Verge') startAstralMusic();
+  else if(n==='Gilded Sanctum') startMorningMusic();
+  else if(n==='Haunted Wood' || n==='Bloodmoon Grove') startForestMusic();
+  else startBattleMusic();
+}
 // ---- Jukebox: audition every music track on demand (from title or town) ----
 const JUKE_TRACKS=[
-  {icon:'🏚', name:'Waystation',        desc:'Hearth & rest — the gentle town theme',          start:startTownMusic},
-  {icon:'⚔', name:'The Road',          desc:'Driving battle march — on the road & in combat', start:startBattleMusic},
-  {icon:'☠', name:'The Guardian',      desc:'Heavy & tense — the act-boss theme',             start:startBossMusic},
-  {icon:'🕯', name:"Pilgrim's Lament",   desc:'Slow, melodic & melancholy',                     start:startLamentMusic},
+  {icon:'✦', name:'Kingsreach (Menu)', desc:'Calm title theme — hopeful but grim',            start:startMenuMusic},
+  {icon:'🏚', name:'Waystation',        desc:'Hearth & rest — the town theme, with oomph',     start:startTownMusic},
+  {icon:'⚔', name:'The Road',          desc:'Driving battle banger (default combat)',         start:startBattleMusic},
+  {icon:'☠', name:'The Guardian',      desc:'Heavy, badass act-boss theme',                   start:startBossMusic},
+  {icon:'🕯', name:"Pilgrim's Lament",   desc:'Slow, melodic & melancholy (now layered)',       start:startLamentMusic},
+  {icon:'🌲', name:'Forest Hunt',       desc:'Woodland prowl — forest & grove biomes',         start:startForestMusic},
+  {icon:'🔔', name:'Morning Bonk',      desc:'Bright, bouncy & quirky — the Gilded Sanctum',    start:startMorningMusic},
+  {icon:'🔥', name:'Ember March',       desc:'Molten, pounding march — Emberdeep',              start:startEmberMusic},
+  {icon:'🌌', name:'Astral Drift',      desc:'Eerie cosmic drift — the Astral Verge',          start:startAstralMusic},
 ];
 let _jukeFrom='titleOv';
 function openJukebox(from){
@@ -1880,7 +1894,7 @@ function openJukebox(from){
 }
 function playJukeTrack(tr){ audioStart(); stopAllMusic(); tr.start(); $('jukeNow').textContent='♪ Now playing — '+tr.name; }
 function jukeStop(){ stopAllMusic(); $('jukeNow').textContent='Stopped'; $('jukeItems').querySelectorAll('.shopitem').forEach(x=>x.classList.remove('playing')); }
-function closeJukebox(){ stopAllMusic(); hide('jukeboxOv'); show(_jukeFrom); if(_jukeFrom==='townOv') startTownMusic(); }
+function closeJukebox(){ stopAllMusic(); hide('jukeboxOv'); show(_jukeFrom); if(_jukeFrom==='townOv') startTownMusic(); else startMenuMusic(); }
 bindBtn($('jukeboxBtn'), ()=>openJukebox('titleOv'));
 bindBtn($('townJukeBtn'), ()=>openJukebox('townOv'));
 bindBtn($('jukeStopBtn'), jukeStop);
@@ -1935,7 +1949,7 @@ function takeTheRoad(){
   G.state='travel'; G.actNodes=0; G.firstNode=true; G.lastWasFork=false; G.nodeAt=G.depth+rand(6,9);
   for(let i=PROP_POOL.length-1;i>=0;i--){ if(PROP_POOL[i].grp.position.z < G.z){ disposeProp(PROP_POOL[i]); PROP_POOL.splice(i,1); } }
   frontier=G.z; generateAhead(G.z-Q.dist);
-  stopTownMusic(); startBattleMusic(); flashLog('You take the road'); refreshHUD();
+  stopTownMusic(); roadMusic(); flashLog('You take the road'); refreshHUD();
 }
 bindBtn($('takeRoadBtn'), takeTheRoad);
 
@@ -2240,9 +2254,15 @@ window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, c
   die, reviveAtWaystation, persistJourney, continueJourney, newPilgrimage, loadJourney, clearJourney,
   onPower, activePower, POWERS,
   startBattleMusic, stopBattleMusic, startBossMusic, stopBossMusic, startLamentMusic, stopLamentMusic, stopAllMusic, startTownMusic, stopTownMusic,
+  startMenuMusic, stopMenuMusic, startForestMusic, startMorningMusic, startEmberMusic, startAstralMusic, roadMusic, musicSelfTest,
   openJukebox, playJukeTrack, jukeStop, closeJukebox, JUKE_TRACKS,
   usePotion, recalc, NPCS, ENEMY_TYPES, POTIONS, applyQuality, Q, QPRESETS, applyBright, B, BPRESETS,
   setWeapon, WEAPON_DEF, WX, BIOMES, wPos, WEATHER_N };
+// The menu theme can't autoplay (browsers require a gesture first) — start it on
+// the first interaction while still on the title; it switches off once a run begins.
+addEventListener('pointerdown', function _kickMusic(){
+  audioStart(); if(G.state==='title') startMenuMusic();
+}, { once:true });
 console.log('[Kingsreach] booted v3 — town + roster + potions');
 </script>
 </body>
