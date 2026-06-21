@@ -8,9 +8,9 @@ name: Smoke test
 on:
   push:
     branches: [master]
-    paths: ['index.html', 'tests/**', '.github/workflows/smoke.yml']
+    paths: ['index.html', 'src/**', 'tests/**', '.github/workflows/smoke.yml']
   pull_request:
-    paths: ['index.html', 'tests/**', '.github/workflows/smoke.yml']
+    paths: ['index.html', 'src/**', 'tests/**', '.github/workflows/smoke.yml']
 
 jobs:
   smoke:
