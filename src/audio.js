@@ -189,12 +189,14 @@ const FOREST = makeSong({ ms:132, bars:28, mode:'drive', arp:'pluck16', leadV:'s
   lead: seqc(rep(R16,4), rep(A_FOREST,6)) });
 
 // ===== MORNING — "Morning Bonk": bright, cheerful, chill-pop (C–Am–F–G) =====
+// A clear, repeated rhythmic cell (note · quick up-down · note) over I–vi–IV–V,
+// mostly stepwise so it's singable; arp thinned to 8ths so the hook stays on top.
 const A_MORNING=[
-  27,null,31,null, 22,null,27,null, 31,null,29,null, 27,null,null,null,
-  24,null,27,null, 31,null,27,null, 24,null,26,null, 27,null,null,null,
-  24,null,null,null, 27,null,24,null, 20,null,22,null, 24,null,null,null,
-  22,null,26,null, 29,null,26,null, 22,null,24,null, 26,null,null,null];
-const MORNING = makeSong({ ms:132, bars:28, mode:'soft', arp:'pluck16', leadV:'square', shimmer:true, lift:true,
+  22,null,null,null, 27,null,26,null, 27,null,null,null, 31,null,null,null,
+  24,null,null,null, 27,null,26,null, 24,null,null,null, 19,null,null,null,
+  24,null,null,null, 27,null,29,null, 27,null,null,null, 24,null,null,null,
+  22,null,null,null, 26,null,29,null, 26,null,null,null, 22,null,null,null];
+const MORNING = makeSong({ ms:132, bars:28, mode:'soft', arp:'gentle8', leadV:'square', shimmer:true, lift:true,
   chords:[[3,7,10],[0,3,7],[-4,0,3],[-2,2,5]], bass:[-9,-12,-16,-14],
   lead: rep(A_MORNING,7) });
 
