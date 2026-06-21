@@ -185,6 +185,12 @@ sections. Major sections, in order:
   `G.powerCd` cooldown. Frostfen's **Rimebrand** is the worked example: freezes the foe (`e.frozenT`,
   honoured by an early-return in `updateEnemy`), cancels its windup, and chips frost damage. To add
   one: set `awaken:'<id>'` on the biome and add a `POWERS.<id>` entry with `{name,icon,cd,use()}`.
+- **Lesser awakenings (minor passives):** the Forgotten Shrine sometimes wakes a small *permanent*
+  passive in you (`LESSER_AWAKENINGS` in `index.html` — e.g. +crit, +regen, +lifesteal), distinct from
+  the guardians' active powers. Stored as ids in `G.passives`; `applyPassives()` recomputes `G.passBonus`
+  (in `state.js`) which `recalc` folds into the derived stats; persisted with the journey
+  (`journeySnapshot`/`loadJourney`). `openShrine` rolls ~55% a lesser-awakening choice vs an old stat
+  `SHRINES` bargain. Add one: append to `LESSER_AWAKENINGS` with `{id,name,icon,stat:{...},desc}`.
 - **State machine:** `G.state` is the single source of truth for what mode the game is in:
   `title`, `town`, `interior` (shop), `travel`, `combat`, `reveal` (act cutscene), `dead`. The
   `update` loop and camera behavior branch on it. Transitions go through the lifecycle functions

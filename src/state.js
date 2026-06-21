@@ -20,6 +20,9 @@ export const G = {
   potions:[], tempBuffs:[], atkDebuffT:0, atkDebuffMul:0.65,
   hitStop:0, combo:0, comboT:0, fovKick:0, slowmo:0, perfCd:0, bossFight:false, chillT:0,
   awakenings:[], powerCd:0,
+  // lesser awakenings — minor permanent passives earned at shrines. `passBonus` is
+  // recomputed from `passives` by applyPassives() (in index.html) and folded into recalc.
+  passives:[], passBonus:{atk:0,hp:0,def:0,speed:0,crit:0,regen:0,lifesteal:0,spell:0},
 };
 
 // run-structure / balance constants
@@ -33,8 +36,9 @@ export const EQUIP_SLOTS = ['weapon','armor','helmet','gloves','under','trinket'
 // temp buffs. Call after any change to G.equip, G.tempBuffs, or perm stats.
 export function recalc(){
   const w=G.equip.weapon; G.weaponType=w.wtype; const wd=WEAPON_DEF[w.wtype]||WEAPON_DEF.sword;
-  let atk=Math.round((wd.atk[0]+wd.atk[1])/2)+G.permAtk;
-  let def=G.permDef, hp=0, spdPct=G.permSpeed, life=0, crit=0, regen=0, spell=0;
+  const pb=G.passBonus||{};   // lesser-awakening passive bonuses
+  let atk=Math.round((wd.atk[0]+wd.atk[1])/2)+G.permAtk+(pb.atk||0);
+  let def=G.permDef+(pb.def||0), hp=(pb.hp||0), spdPct=G.permSpeed+(pb.speed||0), life=(pb.lifesteal||0), crit=(pb.crit||0), regen=(pb.regen||0), spell=(pb.spell||0);
   for(const k of EQUIP_SLOTS){ const it=G.equip[k]; if(!it) continue;
     atk+=it.atk||0; def+=it.def||0; hp+=it.hp||0; spdPct+=it.speed||0; life+=it.lifesteal||0; crit+=it.crit||0; regen+=it.regen||0; spell+=it.spell||0; }
   let spd=wd.speed*(1+spdPct/100);

@@ -279,6 +279,52 @@ test('Awakenings: Rimebrand freezes the foe, has a cooldown, and persists', asyn
   expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
 });
 
+test('lesser awakenings: shrine passives apply, stack, and persist', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html');
+  await waitForBoot(page);
+
+  // Grant two passives and confirm they fold into the derived stats.
+  const r = await page.evaluate(() => {
+    const KR = window.__KR; KR.startGame();
+    const atk0 = KR.G.atk, hp0 = KR.G.maxHp, crit0 = KR.G.crit;
+    KR.grantPassive('emberheart');  // +4 attack
+    KR.grantPassive('deepwell');    // +30 max health
+    KR.grantPassive('keeneye');     // +6% crit
+    return { atk0, hp0, crit0, atk1: KR.G.atk, hp1: KR.G.maxHp, crit1: KR.G.crit,
+      passives: KR.G.passives.slice() };
+  });
+  expect(r.atk1).toBe(r.atk0 + 4);
+  expect(r.hp1).toBe(r.hp0 + 30);
+  expect(r.crit1).toBe(r.crit0 + 6);
+  expect(r.passives).toContain('emberheart');
+
+  // Granting the same passive again must not double-apply.
+  const noDouble = await page.evaluate(() => {
+    const KR = window.__KR; const atk = KR.G.atk; KR.grantPassive('emberheart');
+    return { same: KR.G.atk === atk, count: KR.G.passives.filter(p => p === 'emberheart').length };
+  });
+  expect(noDouble.same).toBe(true);
+  expect(noDouble.count).toBe(1);
+
+  // The shrine flow itself runs without error.
+  await page.evaluate(() => { const KR = window.__KR; KR.G.state = 'travel'; KR.openShrine(); });
+  expect((await snapshot(page)).state).toBe('event');
+
+  // Passives persist across a reload.
+  await page.evaluate(() => window.__KR.persistJourney());
+  await page.reload(); await waitForBoot(page);
+  const saved = await page.evaluate(() => window.__KR.loadJourney());
+  expect(saved.passives).toContain('deepwell');
+  await page.evaluate(() => window.__KR.continueJourney());
+  const after = await page.evaluate(() => ({ passives: window.__KR.G.passives.slice(), atk: window.__KR.G.atk, maxHp: window.__KR.G.maxHp }));
+  expect(after.passives).toContain('emberheart');
+  expect(Number.isFinite(after.atk)).toBe(true);
+  expect(Number.isFinite(after.maxHp)).toBe(true);
+
+  expect(errors, 'no console/page errors:\n' + errors.join('\n')).toEqual([]);
+});
+
 test('a corrupt save never yields NaN stats', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/index.html');
