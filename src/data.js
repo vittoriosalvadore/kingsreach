@@ -45,7 +45,7 @@ export const BIOMES = [
   { name:'Astral Verge',
     fog:0x140a22, sky:[0x0a061a,0x2a1448,0x140a26], hemiSky:0x9a6ad0, hemiGround:0x1a1030,
     sun:0xd8b0ff, sunInt:0.8, ground:'#241836', groundDark:'#120a1e',
-    accent:0xc070ff, prop:'dungeon', wx:{col:0xc9a8ff,mode:'rise',speed:0.7,sway:0.6,dens:1.0,size:0.14}, rumor:'The sky is wrong here. Stars fall upward. Do not follow them.', beat:'A king reached past the sky here. Something reached back.' },
+    accent:0xc070ff, prop:'astral', wx:{col:0xc9a8ff,mode:'rise',speed:0.7,sway:0.6,dens:1.0,size:0.14}, awaken:'wraithstep', rumor:'The sky is wrong here. Stars fall upward. Do not follow them.', beat:'A king reached past the sky here. Something reached back.' },
   { name:'Bloodmoon Grove',
     fog:0x200c0e, sky:[0x1a0608,0x4a1418,0x260a0c], hemiSky:0xc05a52, hemiGround:0x200a0a,
     sun:0xff9a86, sunInt:0.78, ground:'#2e1614', groundDark:'#180a0a',
@@ -84,6 +84,8 @@ export const ENEMY_TYPES = [
   {id:'wisp',    name:'Wisp Swarm',   tag:'fast triple-jab',  shape:'wisp',     biome:2, behavior:'flurry', hpM:0.6, dmgM:0.42,tel:0.3,  col:0x3a1a0a, hits:3, gap:0.14},
   // biome 3 — Frostfen: "the cold keeps the dead fresh; they wait"
   {id:'revenant',name:'Frostbound Revenant', tag:'frost burst · dodge the chill', shape:'revenant', biome:3, behavior:'frost', hpM:1.5, dmgM:1.35, tel:1.05, col:0x1c3340, standZ:4.6},
+  // biome 4 — Astral Verge: "stars fall upward; do not follow them"
+  {id:'acolyte', name:'Star-Eaten Acolyte', tag:'blinks — it strikes from nowhere', shape:'float', biome:4, behavior:'blink', hpM:1.1, dmgM:1.25, tel:0.78, col:0x2a1442, standZ:5.0},
 ];
 
 // ---- act bosses ----
@@ -94,6 +96,7 @@ export const BOSS_TYPES = {
   castle:  {id:'bossC', name:'The Barrow Lord',   tag:'ACT BOSS', shape:'hulk',   behavior:'heavy',   hpM:1.1, dmgM:1.05,tel:0.95, col:0x24242e, recovery:0.5},
   dungeon: {id:'bossD', name:'The Cinder Tyrant', tag:'ACT BOSS', shape:'hulk',   behavior:'charger', hpM:1.2, dmgM:1.1, tel:0.85, col:0x2a1810, recovery:0.5, standZ:6.5},
   Frostfen:{id:'bossFr',name:'The Hoarfrost Warden', tag:'ACT BOSS · frost', shape:'knight', behavior:'frost', hpM:1.15, dmgM:1.0, tel:1.1, col:0x244355, recovery:0.5},
+  'Astral Verge':{id:'bossAv',name:'The Verge Warden', tag:'ACT BOSS · blink', shape:'caster', behavior:'blink', hpM:1.1, dmgM:1.05, tel:0.85, col:0x3a1a5e},
 };
 
 // ---- weapon definitions ----

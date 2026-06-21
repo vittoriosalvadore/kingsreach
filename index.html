@@ -591,6 +591,11 @@ function buildLandmark(b){
     const sh=new THREE.Mesh(new THREE.ConeGeometry(3.4,20,6),mat(0x2a3e48,{r:.6,m:.2,map:TEX.stone,bump:TEX.stone,bumpScale:.04}));sh.position.y=10;g.add(sh);
     for(const sx of [-3.2,3.4]){ const ic=new THREE.Mesh(new THREE.ConeGeometry(1.0,7,5),mat(0x8fb8d0,{r:.4,e:0x6aa0c0,ei:.5}));ic.position.set(sx,3.5,0);g.add(ic); }
     const crown=new THREE.Mesh(new THREE.SphereGeometry(2.0,10,8),mat(0x0a2230,{e:0x9fe8ff,ei:2.2}));crown.position.y=19;g.add(crown);g.userData.flame=crown;
+  } else if(b.prop==='astral'){
+    // a rift-monolith with stars streaming upward into a wrong sky
+    const mono=new THREE.Mesh(new THREE.BoxGeometry(3,18,3),mat(0x180a2e,{r:.5,m:.3,e:0x4a2a7a,ei:.4,map:TEX.stone}));mono.position.y=9;mono.rotation.y=.4;g.add(mono);
+    const rift=new THREE.Mesh(new THREE.SphereGeometry(2.4,12,10),mat(0x150826,{e:0xc070ff,ei:2.4}));rift.position.y=15;g.add(rift);g.userData.flame=rift;
+    for(let i=0;i<5;i++){ const sh=new THREE.Mesh(new THREE.TetrahedronGeometry(rand(.5,1.0)),mat(0x2a1442,{e:0xc9a8ff,ei:1.2}));sh.position.set(rand(-5,5),rand(3,16),rand(-3,3));g.add(sh); }
   } else {
     const tr=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.8,20,7),mat(0x14110c,{r:1,map:TEX.bark,bump:TEX.bark,bumpScale:.03}));tr.position.y=10;g.add(tr);
     const c=new THREE.Mesh(new THREE.SphereGeometry(5.5,7,6),mat(0x16241a,{r:1}));c.position.y=17;c.scale.y=.7;g.add(c);
@@ -1315,6 +1320,14 @@ const POWERS = {
       ui.ehp.style.width = clamp(e.hp/e.max*100,0,100)+'%';
       if(e.hp<=0) killEnemy();
     } },
+  wraithstep: { id:'wraithstep', name:'Wraithstep', icon:'✦', cd:6,
+    use(){ // astral blink: long i-frames + reposition + a counter-strike from nowhere
+      G.iframes=Math.max(G.iframes,0.8); G.dodgeX=(chance(.5)?-1:1)*1.6; G.perfCd=0.5; G.slowmo=0.4;
+      audio('dodge'); burst(G.x,1.0,G.z,{color:0xc070ff,n:22,spd:4,life:.5,up:true,grav:4});
+      const e=G.enemy, g=G.eGrp; if(e&&!e.dead){ const dmg=Math.round(G.atk*1.0); e.hp-=dmg;
+        const sx=g?g.position.x:G.x, sz=g?g.position.z:G.z-2.6; burst(sx,1.3,sz,{color:0xd8b0ff,n:16,spd:5,life:.5});
+        floatDmg(dmg,{cls:'crit',text:'✦'+dmg,color:'#d8b0ff'}); ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
+        if(e.hp<=0) killEnemy(); } } },
 };
 function activePower(){ for(const id of G.awakenings){ if(POWERS[id]) return POWERS[id]; } return null; }
 function onPower(){
@@ -1540,6 +1553,18 @@ const BEHAVIOR = {
         burst(G.x,0.2,G.z,{color:0xbfe8ff,n:18,spd:3,life:.6,up:true,grav:6});
         applyChill(e); e.atkT=rand(2.0,3.2); }
     } else { e.atkT-=dt; if(e.atkT<=0) e.windup=e.tel; }
+  },
+  blink(e,g,dt,tz){
+    // astral foe: mid-windup it blinks aside (stars fall upward), then strikes from
+    // the wrong angle — the teleport throws off your dodge read.
+    if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel;
+      g.userData.mats.forEach(m=>m.emissiveIntensity=.2+k*1.7);
+      if(!e._blinked && k>0.5){ e._blinked=true;
+        burst(g.position.x,1.2,g.position.z,{color:0xc070ff,n:14,spd:4,life:.4,up:true}); audio('whoosh');
+        g.position.x=(g.position.x>=0?-1:1)*rand(0.7,1.7);
+        burst(g.position.x,1.2,g.position.z,{color:0xc070ff,n:14,spd:4,life:.4,up:true}); }
+      if(e.windup<=0){ e._blinked=false; g.position.x=lerp(g.position.x,0,0.6); audio('jab'); enemyHit(e,1); e.atkT=rand(1.3,2.2); }
+    } else { e.atkT-=dt; g.position.x=lerp(g.position.x,0,dt*4); if(e.atkT<=0) e.windup=e.tel; }
   },
   hexer(e,g,dt,tz){
     if(e.windup>0){ e.windup-=dt; const k=1-e.windup/e.tel;

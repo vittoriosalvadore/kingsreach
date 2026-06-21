@@ -83,6 +83,19 @@ function buildFrostfenProp(){ const r=Math.random();
   if(r<.5)  return spriteProp(propRec('fr_spire',16,34,dIceSpire), rand(2.4,5.5));
   if(r<.8)  return spriteProp(propRec('fr_stump',20,16,dFrozenStump), rand(1.1,1.8));
   return spriteProp(propRec('fr_cairn',16,18,dCairn), rand(1.0,1.6)); }
-const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp };
+// ---- Astral Verge: wrong sky, monoliths, upward stars ----
+function dMonolith(x,W,H){ const P=PX(x),cx=W>>1; const m='#1d1130',l='#352052',d='#0e0820',gl='#c9a8ff';
+  for(let y=2;y<H;y++){ const w=Math.max(1,(W/2-2)); for(let i=-w;i<=w;i++)P(cx+i,y,1,1, i<-w+2?d:(i>w-2?l:m)); }
+  for(let i=0;i<6;i++)P(cx-1+((i*5)%3),(H*0.25)+(i*8)%((H*0.6)|0),1,1,gl); }                 // rune glints
+function dShard(x,W,H){ const P=PX(x),cx=W>>1; const m='#2a1442',l='#6a3aa0',gl='#d8b0ff';
+  for(let y=2;y<H-2;y++){ const t=Math.abs((y-(H/2))/(H/2)), w=Math.max(1,Math.round((W/2-1)*(1-t))); for(let i=-w;i<=w;i++)P(cx+i,y,1,1, i<0?m:l); }
+  P(cx,3,1,2,gl); P(cx,H-5,1,2,gl); }
+function dStarflk(x,W,H){ const P=PX(x); const gl='#d8b0ff',di='#8a6ad0';                       // upward-drifting star fleck cluster
+  for(let i=0;i<10;i++){ const px=(i*7+3)%W, py=H-2-((i*9)%(H-2)); P(px,py,1,1, i%3?di:gl); if(i%3===0)P(px,py-1,1,1,gl); } }
+function buildAstralProp(){ const r=Math.random();
+  if(r<.45) return spriteProp(propRec('a_mono',16,34,dMonolith), rand(2.6,5.5));
+  if(r<.78) return spriteProp(propRec('a_shard',14,22,dShard), rand(1.4,2.6));
+  return spriteProp(propRec('a_star',16,18,dStarflk), rand(1.2,2.0)); }
+const PROP_FN = { forest:buildForestProp, castle:buildCastleProp, dungeon:buildDungeonProp, frostfen:buildFrostfenProp, astral:buildAstralProp };
 
 export { PROP_FN, PX };
