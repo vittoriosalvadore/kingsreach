@@ -126,21 +126,19 @@ function makeSong(o){
       if(step===0) sub(NOTE(br),t,barSec*0.9,0.12);
       if(o.softKick && step===0 && bar%2===0) kick(t,0.22);
     }
-    // orchestral pass — strings ensemble bed, timpani, and brass swells (cinematic)
-    if(o.orch){
+    // light orchestral accents — only at each 4-bar phrase start (a touch, not a full orchestra)
+    if(o.orch && bar%4===0 && step===0){
       const heavy=(o.mode==='drive'||o.mode==='march');
-      if(step===0){ strings(NOTE(c[0]),t,barSec*1.05,0.03); strings(NOTE(c[1]),t,barSec*1.05,0.024); strings(NOTE(c[2]+12),t,barSec*1.05,0.018); }
-      if(step===0) timp(t,NOTE(br), heavy?0.2:0.12);
-      if(heavy && step===8) timp(t,NOTE(br), 0.16);
-      if(bar%4===0 && step===0){ const bv=heavy?0.05:0.035; brass(NOTE(c[0]),t,barSec*0.85,bv); brass(NOTE(c[2]),t,barSec*0.85,bv*0.8); }
+      timp(t, NOTE(br), heavy?0.18:0.11);                                   // a single cinematic timpani boom
+      strings(NOTE(c[0]),t,barSec*1.6,0.024); strings(NOTE(c[2]+12),t,barSec*1.6,0.018);  // soft string swell
+      const bv=heavy?0.038:0.026; brass(NOTE(c[0]),t,barSec*0.8,bv); brass(NOTE(c[2]),t,barSec*0.8,bv*0.8);  // gentle horn swell
     }
-    // chord-tone arpeggio — pizzicato strings when orchestral, else the synth voice
-    const a1=NOTE(tones[step%4]+12), a8=NOTE(tones[(step>>1)%4]+12), a4=NOTE(tones[(step>>2)%4]+12);
-    if(o.arp==='drive16'){ if(o.orch) pizz(a1,t,0.05); else seqNote('sawtooth', a1, t, o.ms/1000*0.9, 0.04, 8); }
-    else if(o.arp==='pluck16'){ if(o.orch) pizz(a1,t,0.05); else seqNote('square', a1, t, o.ms/1000*0.85, 0.045, 4); }
-    else if(o.arp==='gentle8'){ if(step%2===0){ if(o.orch) pizz(a8,t,0.055); else pluck(a8, t, 0.18, 0.05); } }
-    else if(o.arp==='bell8'){ if(step%2===0) bell(a8, t, 0.5, 0.035); }
-    else if(o.arp==='bell4'){ if(step%4===0) bell(a4, t, 0.9, 0.04); }
+    // chord-tone arpeggio motor (the original synth voice — unchanged)
+    if(o.arp==='drive16') seqNote('sawtooth', NOTE(tones[step%4]+12), t, o.ms/1000*0.9, 0.04, 8);
+    else if(o.arp==='pluck16') seqNote('square', NOTE(tones[step%4]+12), t, o.ms/1000*0.85, 0.045, 4);
+    else if(o.arp==='gentle8'){ if(step%2===0) pluck(NOTE(tones[(step>>1)%4]+12), t, 0.18, 0.05); }
+    else if(o.arp==='bell8'){ if(step%2===0) bell(NOTE(tones[(step>>1)%4]+12), t, 0.5, 0.035); }
+    else if(o.arp==='bell4'){ if(step%4===0) bell(NOTE(tones[(step>>2)%4]+12), t, 0.9, 0.04); }
     // foreground memorable lead (octave-lifted in the 2nd half)
     let l=lead[s];
     if(l!=null){
