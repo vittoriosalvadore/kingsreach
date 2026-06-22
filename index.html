@@ -207,6 +207,14 @@
     background:rgba(10,8,6,.55);border:1px solid #2e281d;}
   #townSettings.hidden{display:none;}
   .tslabel{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8c8062;}
+  /* title screen — keep the title visible & the layout calm on phones */
+  #titleOv{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;}
+  #titlePanel{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(92%,360px);margin:auto;padding:26px 0;pointer-events:auto;}
+  #titleBtns{display:flex;flex-direction:column;gap:9px;width:100%;align-items:center;}
+  #titleBtns .cta{width:min(100%,300px);}
+  #titleUtil{display:flex;gap:8px;width:min(100%,300px);}
+  #titleSettings{display:flex;flex-direction:column;gap:5px;align-items:center;padding:10px 12px;border-radius:12px;background:rgba(10,8,6,.55);border:1px solid #2e281d;}
+  #titleSettings.hidden{display:none;}
   #takeRoadBtn{pointer-events:auto;width:100%;}
 
   #dlgOv{justify-content:flex-end;padding-bottom:30px;background:linear-gradient(rgba(0,0,0,0) 45%,rgba(4,3,8,.6) 80%);backdrop-filter:none;-webkit-backdrop-filter:none;}
@@ -285,7 +293,7 @@
   .lootbtn, .cta, .si-buy, #townSub, #evBody, #shopGold, #catalogGold, #townStats, #soulCount, #revealAct, #revealSub{
     font-size:14px !important; line-height:1.5 !important; font-style:normal !important; }
   .fc-name, .si-name, #cardname, #townName, #evTitle, #revealName, #dlgName{ font-size:21px !important; color:#d9b96a !important; }
-  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, .tbtn, #townSettings, #catalogItems > div, #soulItems > div, #shopItems .shopitem{
+  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, .tbtn, #townSettings, #titleSettings, #catalogItems > div, #soulItems > div, #shopItems .shopitem{
     border-radius:0 !important; box-shadow:none !important; background:#160f08 !important;
     border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
   .cta, .lootbtn, .si-buy{
@@ -357,18 +365,27 @@
 
   <!-- Title -->
   <div id="titleOv" class="overlay">
-    <div class="subtitle">A pilgrimage to break the curse</div>
-    <div class="title">KINGSREACH</div>
-    <div class="body">The line of kings died on the road to <b>Kingsreach</b>, and their unquiet dead now choke every mile of it. The last King laid a single charge upon you — a nameless pilgrim: walk the cursed road to its end and break what binds the dead. The curse will not grant you death; it can only turn you back. Rest at each <b>waystation</b>, then walk on… and feel the road begin to wake something in you.</div>
-    <button id="continueBtn" class="cta hidden">CONTINUE THE PILGRIMAGE</button>
-    <button id="beginBtn" class="cta">ENTER KINGSREACH</button>
-    <button id="jukeboxBtn" class="cta" style="font-size:13px;padding:9px 22px;background:linear-gradient(#8a6fd4,#5a3f9a);">🎵 JUKEBOX</button>
-    <div class="hint">STRIKE · DODGE · SMITE · POTION &nbsp;·&nbsp; desktop: SPACE · SHIFT/← → · F · Q</div>
-    <div class="perflbl">Graphics quality</div>
-    <div id="perfRow" class="perfrow"></div>
-    <div id="perfNote"></div>
-    <div class="perflbl">Brightness</div>
-    <div id="brightRow" class="perfrow"></div>
+    <div id="titlePanel">
+      <div class="subtitle">A pilgrimage to break the curse</div>
+      <div class="title">KINGSREACH</div>
+      <div class="body">The kings died on the road to <b>Kingsreach</b>, and their unquiet dead choke every mile. The last King's charge falls to you — a nameless pilgrim: walk the cursed road to its end and break what binds the dead. Death will not take you here; the road only turns you back… and wakes something in you.</div>
+      <div id="titleBtns">
+        <button id="continueBtn" class="cta" style="display:none;">CONTINUE THE PILGRIMAGE</button>
+        <button id="beginBtn" class="cta">ENTER KINGSREACH</button>
+      </div>
+      <div id="titleUtil">
+        <button id="jukeboxBtn" class="tbtn">🎵<span>Jukebox</span></button>
+        <button id="titleCfgBtn" class="tbtn">⚙<span>Options</span></button>
+      </div>
+      <div id="titleSettings" class="hidden">
+        <div class="tslabel">Graphics quality</div>
+        <div id="perfRow" class="perfrow"></div>
+        <div id="perfNote"></div>
+        <div class="tslabel">Brightness</div>
+        <div id="brightRow" class="perfrow"></div>
+      </div>
+      <div class="hint">STRIKE · DODGE · SMITE · POWER &nbsp;·&nbsp; desktop: SPACE · SHIFT/← → · F · R · Q</div>
+    </div>
   </div>
 
   <!-- Town -->
@@ -2152,6 +2169,7 @@ function continueJourney(){
 }
 bindBtn($('beginBtn'),newPilgrimage);
 bindBtn($('continueBtn'),continueJourney);
+bindBtn($('titleCfgBtn'), ()=>$('titleSettings').classList.toggle('hidden'));
 bindBtn($('restartBtn'),reviveAtWaystation);
 function die(){
   if(G.state==='dead') return;
@@ -2341,7 +2359,7 @@ applyQuality(Q.key);
 applyBright(B.key);
 refreshHUD();
 // offer to resume a saved pilgrimage from the title
-(function(){ const j=loadJourney(); if(j){ const cb=$('continueBtn'); cb.textContent='CONTINUE — ACT '+j.act; cb.classList.remove('hidden'); $('beginBtn').textContent='NEW PILGRIMAGE'; } })();
+(function(){ const j=loadJourney(); if(j){ const cb=$('continueBtn'); cb.textContent='CONTINUE — ACT '+j.act; cb.style.display=''; $('beginBtn').textContent='NEW PILGRIMAGE'; } })();
 requestAnimationFrame(frame);
 window.__KR = { G, startGame, step:(dt=0.016)=>{update(dt);render();}, render, curBiome, nextBiome,
   enterTown, takeTheRoad, talkNPC, openShopCatalog, backToTown, restAtInn,
