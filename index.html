@@ -173,18 +173,33 @@
   #catalogItems{max-height:32vh;}
   #catalogOv .title{font-size:20px!important;margin-bottom:0;}
   #catalogOv .subtitle{font-size:11px!important;}
-  #townHead{position:absolute;top:60px;left:0;right:0;text-align:center;}
+  #townHead{position:absolute;top:54px;left:0;right:0;text-align:center;}
   #townName{font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 2px 12px rgba(217,185,106,.4),0 2px 5px #000;}
   #townSub{font-size:11px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;margin-top:3px;}
-  #npcRow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:min(94%,360px);margin-bottom:14px;}
-  .npcbtn{pointer-events:auto;flex:1 1 30%;min-width:96px;display:flex;flex-direction:column;align-items:center;gap:3px;
-    padding:9px 6px;border-radius:11px;cursor:pointer;background:linear-gradient(180deg,rgba(28,23,16,.94),rgba(10,9,7,.96));
+  #townPanel{display:flex;flex-direction:column;gap:11px;width:min(94%,360px);pointer-events:auto;}
+  #townStats{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;color:var(--gold);letter-spacing:.5px;}
+  #townStats .tstat{font-family:Georgia,serif;}
+  #townStats #townSouls{color:#c9a8ff;}
+  #townStats .tsep{color:#5a513c;}
+  #npcRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;}
+  .npcbtn{pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:10px 6px;border-radius:11px;cursor:pointer;background:linear-gradient(180deg,rgba(28,23,16,.94),rgba(10,9,7,.96));
     border:1px solid #463d2c;transition:transform .08s,border-color .1s;}
   .npcbtn:active{transform:scale(.96);}
-  .npcbtn .ni{font-size:24px;}
-  .npcbtn .nn{font-size:10px;color:#cdbf9a;letter-spacing:.3px;text-align:center;line-height:1.2;}
-  #townGoldRow{font-size:13px;color:var(--gold);margin-bottom:10px;}
-  #takeRoadBtn{pointer-events:auto;}
+  .npcbtn .ni{font-size:23px;line-height:1;}
+  .npcbtn .nm{font-family:Georgia,serif;font-size:12px;color:var(--gold);letter-spacing:.3px;line-height:1.1;text-align:center;}
+  .npcbtn .nr{font-size:8px;color:#9a8e6e;letter-spacing:1px;text-transform:uppercase;line-height:1.2;text-align:center;}
+  #townActions{display:flex;gap:8px;}
+  .tbtn{flex:1;pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:9px 4px;border-radius:10px;cursor:pointer;font-family:Georgia,serif;font-size:16px;color:#cdbf9a;
+    background:rgba(20,16,11,.72);border:1px solid #3e3626;transition:transform .07s,border-color .12s;}
+  .tbtn span{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#9a8e6e;}
+  .tbtn:active{transform:scale(.95);}
+  #townSettings{display:flex;flex-direction:column;gap:5px;align-items:center;padding:10px 12px;border-radius:12px;
+    background:rgba(10,8,6,.55);border:1px solid #2e281d;}
+  #townSettings.hidden{display:none;}
+  .tslabel{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8c8062;}
+  #takeRoadBtn{pointer-events:auto;width:100%;}
 
   #dlgOv{justify-content:flex-end;padding-bottom:30px;background:linear-gradient(rgba(0,0,0,0) 45%,rgba(4,3,8,.6) 80%);backdrop-filter:none;-webkit-backdrop-filter:none;}
   #dlgPanel{width:min(94%,360px);background:linear-gradient(180deg,rgba(24,20,14,.97),rgba(9,8,6,.98));
@@ -259,10 +274,10 @@
   .overlay .title{ font-size:28px !important; letter-spacing:2px !important; color:#d9b96a !important; text-shadow:2px 2px 0 #08070a !important; }
   .overlay .subtitle{ font-size:14px !important; color:#a99b73 !important; }
   .overlay .body, #dlgText, .fc-desc, .si-desc, #cardstats, .crow, #cmpline,
-  .lootbtn, .cta, .si-buy, .npcbtn .nn, #townSub, #evBody, #shopGold, #catalogGold, #townGoldRow, #soulCount, #revealAct, #revealSub{
+  .lootbtn, .cta, .si-buy, #townSub, #evBody, #shopGold, #catalogGold, #townStats, #soulCount, #revealAct, #revealSub{
     font-size:14px !important; line-height:1.5 !important; font-style:normal !important; }
   .fc-name, .si-name, #cardname, #townName, #evTitle, #revealName, #dlgName{ font-size:21px !important; color:#d9b96a !important; }
-  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, #catalogItems > div, #soulItems > div, #shopItems .shopitem{
+  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, .tbtn, #townSettings, #catalogItems > div, #soulItems > div, #shopItems .shopitem{
     border-radius:0 !important; box-shadow:none !important; background:#160f08 !important;
     border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
   .cta, .lootbtn, .si-buy{
@@ -272,12 +287,16 @@
   .lootbtn.primary, .cta{ color:#fff4d8 !important; }
   #dlgPortrait{ border-radius:0 !important; border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
   /* live-3D-backdrop overlays (town / shop interior / dialogue / fork): let the scene show THROUGH the pixel chrome */
-  #townOv .npcbtn, #catalogOv #catalogItems > div, #dlgPanel, #forkOv .forkchoice{ background:rgba(16,11,6,.56) !important; }
+  #townOv .npcbtn, .krfont .tbtn, #catalogOv #catalogItems > div, #dlgPanel, #forkOv .forkchoice{ background:rgba(16,11,6,.56) !important; }
   #townOv .cta, #catalogOv .si-buy{ background:rgba(48,34,16,.64) !important; }
   /* keep the town UI compact so the city breathes instead of a wall of buttons */
-  #townOv .npcbtn{ padding:6px 5px !important; gap:2px !important; }
-  #townOv .npcbtn .ni{ font-size:20px !important; }
-  #townOv .npcbtn .nn{ line-height:1.1 !important; }
+  #townOv .npcbtn{ padding:7px 5px !important; gap:2px !important; }
+  .krfont .npcbtn .ni{ font-size:20px !important; }
+  .krfont .npcbtn .nm{ font-size:13px !important; color:#d9b96a !important; line-height:1.05 !important; }
+  .krfont .npcbtn .nr{ font-size:9px !important; color:#9a8e6e !important; line-height:1.1 !important; }
+  .krfont .tbtn{ font-size:15px !important; padding:8px 4px !important; }
+  .krfont .tbtn span{ font-size:9px !important; }
+  .krfont .tslabel{ font-size:9px !important; color:#8c8062 !important; }
 </style>
 </head>
 <body>
@@ -347,14 +366,19 @@
   <!-- Town -->
   <div id="townOv" class="overlay hidden">
     <div id="townHead"><div id="townName">Kingsreach</div><div id="townSub">Waystation · Haunted Wood</div></div>
-    <div id="townGoldRow">◈ <span id="townGold">0</span> gold &nbsp;·&nbsp; <span id="townSouls">⟡ 0 souls</span></div>
-    <div id="townPerf" class="perfrow"></div>
-    <div id="townBright" class="perfrow"></div>
-    <div id="npcRow"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      <button id="gearBtn" class="cta" style="font-size:13px;padding:11px 18px;background:linear-gradient(#8a9aac,#4a5a6a);">📋 GEAR</button>
-      <button id="soulBtn" class="cta" style="font-size:13px;padding:11px 18px;background:linear-gradient(#8a6fd4,#5a3f9a);">⟡ SOULS</button>
-      <button id="townJukeBtn" class="cta" style="font-size:13px;padding:11px 18px;background:linear-gradient(#8a6fd4,#5a3f9a);">🎵 MUSIC</button>
+    <div id="townPanel">
+      <div id="townStats"><span class="tstat">◈ <span id="townGold">0</span> gold</span><span class="tsep">·</span><span class="tstat" id="townSouls">⟡ 0 souls</span></div>
+      <div id="npcRow"></div>
+      <div id="townSettings" class="hidden">
+        <div class="tslabel">Quality</div><div id="townPerf" class="perfrow"></div>
+        <div class="tslabel">Brightness</div><div id="townBright" class="perfrow"></div>
+      </div>
+      <div id="townActions">
+        <button id="gearBtn" class="tbtn">📋<span>Gear</span></button>
+        <button id="soulBtn" class="tbtn">⟡<span>Souls</span></button>
+        <button id="townJukeBtn" class="tbtn">🎵<span>Music</span></button>
+        <button id="townCfgBtn" class="tbtn">⚙<span>Options</span></button>
+      </div>
       <button id="takeRoadBtn" class="cta">TAKE THE ROAD →</button>
     </div>
   </div>
@@ -1859,8 +1883,9 @@ function enterTown(){
   $('townGold').textContent = G.gold;
   const row=$('npcRow'); row.innerHTML='';
   NPCS.forEach(npc=>{ const el=document.createElement('button'); el.className='npcbtn';
-    el.innerHTML=`<span class="ni">${npc.icon}</span><span class="nn">${npc.name}<br>${npc.role}</span>`;
+    el.innerHTML=`<span class="ni">${npc.icon}</span><span class="nm">${npc.name}</span><span class="nr">${npc.role}</span>`;
     el.addEventListener('pointerdown',e=>{e.preventDefault(); if(npc.shop) enterShop(npc); else talkNPC(npc);}); row.appendChild(el); });
+  $('townSettings').classList.add('hidden');   // graphics options stay tucked away until asked for
   buildPerfRow($('townPerf')); buildBrightRow($('townBright'));
   $('townSouls').textContent = '⟡ '+META.souls+' souls';
   stopBattleMusic(); stopBossMusic();   // leave the road theme behind at the waystation
@@ -1930,6 +1955,7 @@ function jukeStop(){ stopAllMusic(); $('jukeNow').textContent='Stopped'; $('juke
 function closeJukebox(){ stopAllMusic(); hide('jukeboxOv'); show(_jukeFrom); if(_jukeFrom==='townOv') startTownMusic(); else startMenuMusic(); }
 bindBtn($('jukeboxBtn'), ()=>openJukebox('titleOv'));
 bindBtn($('townJukeBtn'), ()=>openJukebox('townOv'));
+bindBtn($('townCfgBtn'), ()=>$('townSettings').classList.toggle('hidden'));
 bindBtn($('jukeStopBtn'), jukeStop);
 bindBtn($('leaveJukeBtn'), closeJukebox);
 function openGear(){
