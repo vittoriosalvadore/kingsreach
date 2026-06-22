@@ -2,19 +2,24 @@
 // self-contained (Web Audio API only): nothing here reads game state or the
 // scene, so the module has no imports. The rest of the game calls these.
 
-let AC=null,wind=null,musicBus=null;
+let AC=null,wind=null,musicBus=null,revConv=null,revGain=null;
 // All music voices route through a swappable "music bus" gain so a stop/switch can
 // fade the bus to silence in ~0.12s — cutting notes that are still ringing (long
 // pads/sub) instead of letting them bleed over the next track. SFX bypass this.
+// The bus also feeds a shared convolution reverb (a generated impulse) at a level
+// set per-track (chill = wetter, combat = drier), to give the music space & glue.
 function musOut(){ return musicBus || (AC && AC.destination); }
 function _fadeBus(b){ if(!b||!AC) return; try{ const n=AC.currentTime; b.gain.cancelScheduledValues(n); b.gain.setValueAtTime(b.gain.value,n); b.gain.linearRampToValueAtTime(0.0001,n+0.12); setTimeout(()=>{ try{ b.disconnect(); }catch(e){} }, 500); }catch(e){} }
-function _newBus(){ if(!AC) return; _fadeBus(musicBus); musicBus=AC.createGain(); musicBus.gain.value=1; musicBus.connect(AC.destination); }
+function _newBus(){ if(!AC) return; _fadeBus(musicBus); musicBus=AC.createGain(); musicBus.gain.value=1; musicBus.connect(AC.destination); if(revConv) musicBus.connect(revConv); }
+function _makeIR(seconds,decay){ const len=(AC.sampleRate*seconds)|0; const b=AC.createBuffer(2,len,AC.sampleRate);   // exp-decay noise impulse → a soft hall
+  for(let ch=0;ch<2;ch++){ const d=b.getChannelData(ch); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); } return b; }
 export function audioStart(){ if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)();
   const buf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=buf.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.5;
   const src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
   const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420;
   const g=AC.createGain(); g.gain.value=.05; src.connect(f); f.connect(g); g.connect(AC.destination); src.start(); wind=g;
+  try{ revConv=AC.createConvolver(); revConv.buffer=_makeIR(1.9,2.6); revGain=AC.createGain(); revGain.gain.value=0; revConv.connect(revGain); revGain.connect(AC.destination); }catch(e){ revConv=null; }
 }catch(e){} }
 function tone(type,f0,f1,t0,dur,vol){ if(!AC)return; const t=AC.currentTime+t0; const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
   o.type=type; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
@@ -97,6 +102,7 @@ const rep=(a,n)=>{ let o=[]; for(let i=0;i<n;i++) o=o.concat(a); return o; };   
 let songTimer=null, songStep=0, curSong=null;
 function playSong(id,song){ if(!AC || curSong===id) return; if(songTimer) clearInterval(songTimer);
   _newBus();   // fresh bus; the old one (with any ringing notes) fades out independently
+  if(revGain) revGain.gain.value = (song.reverb!=null ? song.reverb : 0.14);   // per-track reverb depth
   curSong=id; songStep=0;
   songTimer=setInterval(()=>{ song.voice(AC.currentTime+0.02, songStep%song.len, songStep); songStep++; }, song.ms); }
 function stopSong(id){ if(curSong!==id) return; if(songTimer){ clearInterval(songTimer); songTimer=null; } _fadeBus(musicBus); musicBus=null; curSong=null; }
@@ -113,30 +119,32 @@ export function stopAllMusic(){ if(songTimer){ clearInterval(songTimer); songTim
 const R16=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null];
 function makeSong(o){
   const len=o.bars*16, ch=o.chords, bass=o.bass, lead=o.lead, barSec=o.ms*16/1000, ld=o.ms/1000*1.7, half=o.bars/2;
-  return { ms:o.ms, len, voice(t,s){
+  return { ms:o.ms, len, reverb:o.reverb, voice(t,s){
     const bar=(s/16)|0, step=s%16, beat=step%4;
-    const c=ch[bar%ch.length], br=bass[bar%bass.length], tones=[c[0],c[1],c[2],c[0]+12];
-    // harmonic bed — a sustained triad each bar
-    if(step===0){ pad(NOTE(c[0]),t,barSec*1.05,0.045); pad(NOTE(c[1]),t,barSec*1.05,0.032); pad(NOTE(c[2]),t,barSec*1.05,0.028); }
-    // bass + drums by mode
+    const c=ch[bar%ch.length], br=bass[bar%bass.length], tones=[c[0],c[1],c[2], c.length>3?c[3]:c[0]+12];
+    // harmonic bed — a sustained chord each bar (4th tone = 7th/colour when the chord has one)
+    if(step===0){ pad(NOTE(c[0]),t,barSec*1.05,0.045); pad(NOTE(c[1]),t,barSec*1.05,0.032); pad(NOTE(c[2]),t,barSec*1.05,0.028); if(c.length>3) pad(NOTE(c[3]),t,barSec*1.05,0.02); }
+    // drums by mode (bass handled separately so a track can carry a moving bassline)
     if(o.mode==='drive'){
-      if(beat===0){ sub(NOTE(br),t,0.16,0.14); kick(t,0.5); }
-      if(step===6||step===14) sub(NOTE(br+12),t,0.12,0.09);   // synthwave octave push
+      if(beat===0) kick(t,0.5);
       if(step===4||step===12) snare(t,0.16);
       if(step%4===2) hat(t,0.045,0.03); else if(step%2===1) hat(t,0.02,0.018);
     } else if(o.mode==='march'){
-      if(step===0||step===8) sub(NOTE(br),t,0.5,0.15);
       if(step%4===0) kick(t, step===0?0.55:0.5);
       if(step===8) snare(t,0.2);
       if(step%2===0) hat(t, step%4===0?0.045:0.03, 0.025);
     } else if(o.mode==='soft'){
-      if(step===0) sub(NOTE(br),t,0.5,0.12); if(step===8) sub(NOTE(br+12),t,0.4,0.09);
       if(step===0) kick(t,0.34); if(step===8) kick(t,0.26);
       if(step%4===2) hat(t,0.03,0.025);
-    } else { // 'calm' — minimal, ambient
-      if(step===0) sub(NOTE(br),t,barSec*0.9,0.12);
-      if(o.softKick && step===0 && bar%2===0) kick(t,0.22);
-    }
+    } else if(o.softKick && step===0 && bar%2===0) kick(t,0.22);   // 'calm'
+    // bass — a per-track moving bassline if given, else the original per-mode root
+    if(o.bassline){ const bo=o.bassline[step]; if(bo!=null) sub(NOTE(br+bo), t, o.bassDur||0.15, 0.12); }
+    else if(o.mode==='drive'){ if(beat===0) sub(NOTE(br),t,0.16,0.14); if(step===6||step===14) sub(NOTE(br+12),t,0.12,0.09); }
+    else if(o.mode==='march'){ if(step===0||step===8) sub(NOTE(br),t,0.5,0.15); }
+    else if(o.mode==='soft'){ if(step===0) sub(NOTE(br),t,0.5,0.12); if(step===8) sub(NOTE(br+12),t,0.4,0.09); }
+    else if(step===0) sub(NOTE(br),t,barSec*0.9,0.12);   // calm
+    // drum fill at the end of each 4-bar phrase (combat life)
+    if(o.fills && bar%4===3){ if(step===10) tom(t,NOTE(br+7),0.16); if(step===13) tom(t,NOTE(br+12),0.17); if(step===15) snare(t,0.22); }
     // light orchestral accents — only at each 4-bar phrase start (a touch, not a full
     // orchestra). `o.orch` is a FLAVOR string so every track gets a different colour.
     if(o.orch && bar%4===0 && step===0){
@@ -185,86 +193,140 @@ function makeSong(o){
 }
 
 // ===== MENU — calm, beautiful title theme (Am–F–C–G; hopeful-but-grim) =====
+// A-phrase (the hook) twice, a higher B-phrase answer, then the hook again (AABA).
 const A_MENU=[
-  19,null,null,null, 24,null,null,null, 22,null,19,null, null,null,null,null,
-  20,null,null,null, 24,null,null,null, 22,null,null,null, 20,null,null,null,
-  19,null,null,null, 22,null,null,null, 27,null,26,null, 22,null,null,null,
-  17,null,null,null, 22,null,null,null, 26,null,24,null, 22,null,null,null];
-const MENU = makeSong({ ms:300, bars:12, orch:'strings', mode:'calm', softKick:true, arp:'harp8', leadV:'choir', lift:true,
+  19,null,null,null, 24,null,22,null, 19,null,null,null, 24,null,null,null,
+  20,null,null,null, 24,null,27,null, 24,null,null,null, 20,null,null,null,
+  19,null,null,null, 22,null,27,null, 26,null,22,null, 19,null,null,null,
+  22,null,null,null, 26,null,24,null, 22,null,19,null, 17,null,null,null];
+const B_MENU=[
+  24,null,null,null, 27,null,31,null, 27,null,24,null, 19,null,null,null,
+  24,null,null,null, 27,null,24,null, 20,null,null,null, 24,null,null,null,
+  31,null,null,null, 34,null,31,null, 27,null,null,null, 31,null,null,null,
+  26,null,null,null, 29,null,26,null, 22,null,24,null, 22,null,null,null];
+const MENU = makeSong({ ms:300, bars:20, reverb:0.26, orch:'strings', mode:'calm', softKick:true, arp:'harp8', leadV:'choir',
   chords:[[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]], bass:[-12,-16,-9,-14],
-  lead: seqc(rep(R16,4), rep(A_MENU,2)) });
+  lead: seqc(rep(R16,4), A_MENU, A_MENU, B_MENU, A_MENU) });
 
-// ===== TOWN — Waystation: warm, cozy, gentle groove + a clear hook (C–G–Am–Em) =====
+// ===== TOWN — Waystation: warm, cozy, gentle groove + a clear hook (Cmaj7–G7–Am7–Em7) =====
+// Jazzy 7th chords give the cozy warmth; bell hook (A) answered by a playful B.
 const A_TOWN=[
   15,null,19,null, 22,null,19,null, 24,null,22,null, 19,null,null,null,
   22,null,26,null, 29,null,26,null, 22,null,19,null, 22,null,null,null,
   24,null,27,null, 31,null,27,null, 24,null,19,null, 24,null,null,null,
   26,null,22,null, 19,null,22,null, 26,null,19,null, 19,null,null,null];
-const TOWN = makeSong({ ms:150, bars:24, orch:'flute', mode:'soft', arp:'gentle8', leadV:'bell', shimmer:true, lift:true,
-  chords:[[3,7,10],[-2,2,5],[0,3,7],[7,10,14]], bass:[-9,-14,-12,-5],
-  lead: seqc(rep(R16,4), rep(A_TOWN,5)) });
+const B_TOWN=[
+  19,null,22,null, 26,null,22,null, 27,null,null,null, 31,null,null,null,
+  29,null,26,null, 22,null,26,null, 20,null,null,null, 22,null,null,null,
+  24,null,27,null, 31,null,27,null, 24,null,19,null, 22,null,null,null,
+  26,null,22,null, 19,null,22,null, 26,null,29,null, 31,null,null,null];
+const TOWN = makeSong({ ms:150, bars:20, reverb:0.22, orch:'flute', mode:'soft', arp:'gentle8', leadV:'bell', shimmer:true,
+  chords:[[3,7,10,14],[-2,2,5,8],[0,3,7,10],[7,10,14,17]], bass:[-9,-14,-12,-5],
+  lead: seqc(rep(R16,4), A_TOWN, A_TOWN, B_TOWN, A_TOWN) });
 
 // ===== BATTLE — "The Road": driving synthwave, clear anthemic hook (Am–G–F–E) =====
+// Octave-bounce bassline + phrase-end fills; A hook answered by a syncopated B.
 const A_BATTLE=[
   24,null,null,null, 27,null,24,null, 19,null,null,null, 24,null,null,null,
   22,null,null,null, 26,null,22,null, 29,null,null,null, 26,null,null,null,
   20,null,null,null, 24,null,20,null, 27,null,null,null, 24,null,null,null,
   26,null,null,null, 23,null,19,null, 23,null,null,null, 19,null,null,null];
-const BATTLE = makeSong({ ms:116, bars:32, orch:'brass', mode:'drive', arp:'drive16', leadV:'saw', shimmer:true, lift:true,
+const B_BATTLE=[
+  31,null,null,27, null,24,null,null, 27,null,31,null, 24,null,null,null,
+  29,null,null,26, null,22,null,null, 26,null,29,null, 22,null,null,null,
+  27,null,null,24, null,20,null,null, 24,null,27,null, 20,null,null,null,
+  26,null,null,23, null,19,null,null, 23,null,26,null, 31,null,null,null];
+const BB_BASS=[0,null,0,12, 0,null,7,null, 0,null,0,12, 7,null,12,null];
+const BATTLE = makeSong({ ms:116, bars:24, reverb:0.12, orch:'brass', mode:'drive', arp:'drive16', leadV:'saw', shimmer:true,
+  bassline:BB_BASS, bassDur:0.13, fills:true,
   chords:[[0,3,7],[-2,2,5],[-4,0,3],[7,11,14]], bass:[-12,-14,-16,-5],
-  lead: seqc(rep(R16,4), rep(A_BATTLE,6), rep(R16,4)) });
+  lead: seqc(rep(R16,4), A_BATTLE, A_BATTLE, B_BATTLE, A_BATTLE, rep(R16,4)) });
 
-// ===== BOSS — "The Guardian": dark, badass, a memorable menacing riff (Dm–Bb–C–A) =====
+// ===== BOSS — "The Guardian": dark, badass, menacing riff (Dm7–Bbmaj7–C7–A7) =====
+// 7th chords for tension; low-root march bassline + timpani fills; A riff + climbing B.
 const A_BOSS=[
   17,null,null,null, 24,null,20,null, 17,null,null,null, 19,null,null,null,
   17,null,null,null, 20,null,17,null, 13,null,null,null, 8,null,null,null,
   19,null,null,null, 22,null,19,null, 15,null,null,null, 10,null,null,null,
   24,null,null,null, 19,null,16,null, 19,null,null,null, 24,null,null,null];
-const BOSS = makeSong({ ms:125, bars:28, orch:'timpani', mode:'march', arp:'tri8', leadV:'brass', lift:true,
-  chords:[[5,8,12],[1,5,8],[3,7,10],[0,4,7]], bass:[-7,-11,-9,-12],
-  lead: seqc(rep(R16,4), rep(A_BOSS,6)) });
+const B_BOSS=[
+  29,null,null,null, 24,null,20,null, 17,null,null,null, 24,null,null,null,
+  25,null,null,null, 24,null,20,null, 17,null,null,null, 13,null,null,null,
+  27,null,null,null, 25,null,22,null, 19,null,null,null, 27,null,null,null,
+  28,null,null,null, 24,null,31,null, 28,null,24,null, 19,null,null,null];
+const BS_BASS=[0,null,null,null, 0,null,7,null, 0,null,null,null, 0,7,null,null];
+const BOSS = makeSong({ ms:125, bars:20, reverb:0.16, orch:'timpani', mode:'march', arp:'tri8', leadV:'brass',
+  bassline:BS_BASS, bassDur:0.4, fills:true,
+  chords:[[5,8,12,15],[1,5,8,12],[3,7,10,13],[0,4,7,10]], bass:[-7,-11,-9,-12],
+  lead: seqc(rep(R16,4), A_BOSS, A_BOSS, B_BOSS, A_BOSS) });
 
-// ===== LAMENT — "Pilgrim's Lament": slow, beautiful & sad (Am–F–C–E), with harmony =====
+// ===== LAMENT — "Pilgrim's Lament": slow, beautiful & sad (Am7–Fmaj7–Cmaj7–E7) =====
+// Minor-7th colour deepens the melancholy; A sigh answered by a descending B.
 const A_LAMENT=[
   24,null,null,null, 27,null,26,null, 24,null,null,null, 19,null,null,null,
   24,null,null,null, 27,null,null,null, 24,null,22,null, 20,null,null,null,
   22,null,null,null, 19,null,22,null, 27,null,null,null, 26,null,null,null,
   26,null,null,null, 23,null,null,null, 19,null,20,null, 19,null,null,null];
-const LAMENT = makeSong({ ms:220, bars:16, orch:'choir', mode:'calm', softKick:false, arp:'bell4', leadV:'strings', harmony:-3,
-  chords:[[0,3,7],[-4,0,3],[3,7,10],[-5,-1,2]], bass:[-12,-16,-9,-17],
-  lead: rep(A_LAMENT,4) });
+const B_LAMENT=[
+  31,null,null,null, 27,null,null,null, 24,null,null,null, 22,null,null,null,
+  24,null,null,null, 20,null,null,null, 24,null,null,null, 27,null,null,null,
+  26,null,null,null, 22,null,null,null, 19,null,null,null, 22,null,null,null,
+  23,null,null,null, 19,null,null,null, 23,null,20,null, 19,null,null,null];
+const LAMENT = makeSong({ ms:220, bars:16, reverb:0.32, orch:'choir', mode:'calm', softKick:false, arp:'bell4', leadV:'strings', harmony:-3,
+  chords:[[0,3,7,10],[-4,0,3,7],[3,7,10,14],[-5,-1,2,5]], bass:[-12,-16,-9,-17],
+  lead: seqc(A_LAMENT, A_LAMENT, B_LAMENT, A_LAMENT) });
 
-// ===== FOREST — "Forest Hunt": mid-tempo synthwave prowl, clear circling hook (Dm–C–G–Dm) =====
+// ===== FOREST — "Forest Hunt": mid-tempo synthwave prowl, circling hook (Dm–C–G–Dm) =====
+// Prowling bassline + fills; octave-doubled pluck (harmony:-12) thickens the thin lead.
 const A_FOREST=[
   17,null,null,null, 20,null,24,null, 20,null,null,null, 17,null,null,null,
   19,null,null,null, 22,null,27,null, 22,null,null,null, 19,null,null,null,
   17,null,null,null, 22,null,26,null, 29,null,null,null, 26,null,null,null,
   24,null,null,null, 20,null,17,null, 12,null,null,null, 17,null,null,null];
-const FOREST = makeSong({ ms:132, bars:28, orch:'harp', mode:'drive', arp:'pluck16', leadV:'pluck', lift:true,
+const B_FOREST=[
+  29,null,24,null, 20,null,24,null, 29,null,null,null, 32,null,null,null,
+  27,null,22,null, 19,null,22,null, 27,null,null,null, 31,null,null,null,
+  26,null,22,null, 29,null,26,null, 22,null,null,null, 26,null,null,null,
+  24,null,20,null, 17,null,20,null, 24,null,29,null, 24,null,null,null];
+const FR_BASS=[0,null,null,7, 0,null,12,null, 0,null,null,7, 5,null,7,null];
+const FOREST = makeSong({ ms:132, bars:20, reverb:0.14, orch:'harp', mode:'drive', arp:'pluck16', leadV:'pluck', harmony:-12,
+  bassline:FR_BASS, bassDur:0.13, fills:true,
   chords:[[5,8,12],[3,7,10],[-2,2,5],[5,8,12]], bass:[-7,-9,-14,-7],
-  lead: seqc(rep(R16,4), rep(A_FOREST,6)) });
+  lead: seqc(rep(R16,4), A_FOREST, A_FOREST, B_FOREST, A_FOREST) });
 
-// ===== MORNING — "Gilded Dawn": bright, cheerful, chill-pop (F–Dm–Bb–C) =====
-// A clear, repeated rhythmic cell (note · quick up-down · note), mostly stepwise so
-// it's singable; arp is a soft harp so the flute hook stays on top.
+// ===== MORNING — "Gilded Dawn": bright, cheerful, chill-pop (Fmaj7–Dm7–Bbmaj7–C7) =====
+// Singable stepwise flute cell (A) with a skipping higher B; gentle 7th-chord warmth.
 const A_MORNING=[
   24,null,27,null, 24,null,20,null, 24,null,null,null, 27,null,null,null,
   24,null,20,null, 17,null,20,null, 24,null,null,null, 20,null,null,null,
   20,null,17,null, 13,null,17,null, 20,null,null,null, 25,null,null,null,
   22,null,19,null, 15,null,19,null, 22,null,null,null, 24,null,null,null];
-const MORNING = makeSong({ ms:132, bars:28, orch:'harp', mode:'soft', arp:'harp8', leadV:'flute', shimmer:true, lift:true,
-  chords:[[-4,0,3],[5,8,12],[1,5,8],[3,7,10]], bass:[-16,-7,-11,-9],
-  lead: rep(A_MORNING,7) });
+const B_MORNING=[
+  27,null,31,null, 27,null,24,null, 27,null,null,null, 31,null,null,null,
+  29,null,27,null, 24,null,27,null, 29,null,null,null, 24,null,null,null,
+  25,null,24,null, 20,null,24,null, 25,null,null,null, 29,null,null,null,
+  27,null,25,null, 22,null,19,null, 22,null,27,null, 31,null,null,null];
+const MORNING = makeSong({ ms:132, bars:16, reverb:0.2, orch:'harp', mode:'soft', arp:'harp8', leadV:'flute', shimmer:true,
+  chords:[[-4,0,3,7],[5,8,12,15],[1,5,8,12],[3,7,10,13]], bass:[-16,-7,-11,-9],
+  lead: seqc(A_MORNING, A_MORNING, B_MORNING, A_MORNING) });
 
-// ===== EMBER — "Ember March": molten driving synthwave, descending hook w/ b2 bite (Am–F–G–Bb) =====
+// ===== EMBER — "Ember March": molten driving synthwave, descending hook (Am–F–G–Bb) =====
+// Gritty 16th-pulsing bassline + fills; A hook answered by a syncopated descending B.
 const A_EMBER=[
   24,null,null,null, 22,null,19,null, 24,null,null,null, 27,null,null,null,
   24,null,null,null, 20,null,19,null, 20,null,null,null, 24,null,null,null,
   22,null,null,null, 29,null,26,null, 22,null,null,null, 17,null,null,null,
   25,null,null,null, 24,null,20,null, 17,null,null,null, 13,null,null,null];
-const EMBER = makeSong({ ms:112, bars:32, orch:'brass', mode:'drive', arp:'drive16', leadV:'psaw', lift:true,
+const B_EMBER=[
+  31,null,null,27, null,24,null,null, 27,null,24,null, 19,null,null,null,
+  27,null,null,24, null,20,null,null, 24,null,20,null, 24,null,null,null,
+  29,null,null,26, null,22,null,null, 26,null,22,null, 26,null,null,null,
+  32,null,null,29, null,25,null,null, 29,null,25,null, 20,null,null,null];
+const EM_BASS=[0,0,null,0, 12,null,0,null, 0,0,null,0, 7,null,12,12];
+const EMBER = makeSong({ ms:112, bars:24, reverb:0.12, orch:'brass', mode:'drive', arp:'drive16', leadV:'psaw',
+  bassline:EM_BASS, bassDur:0.11, fills:true,
   chords:[[0,3,7],[-4,0,3],[-2,2,5],[1,5,8]], bass:[-12,-16,-14,-11],
-  lead: seqc(rep(R16,4), rep(A_EMBER,6), rep(R16,4)) });
+  lead: seqc(rep(R16,4), A_EMBER, A_EMBER, B_EMBER, A_EMBER, rep(R16,4)) });
 
 // ===== ASTRAL — "Astral Drift": eerie, cosmic, floating (Am–F–Dm–E) with a clear arching hook =====
 const A_ASTRAL=[
@@ -272,7 +334,7 @@ const A_ASTRAL=[
   24,null,null,null, 27,null,32,null, 27,null,null,null, 24,null,null,null,
   24,null,null,null, 29,null,32,null, 29,null,null,null, 24,null,null,null,
   26,null,null,null, 31,null,35,null, 31,null,null,null, 26,null,null,null];
-const ASTRAL = makeSong({ ms:150, bars:24, orch:true, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', shimmer:true, lift:true,
+const ASTRAL = makeSong({ ms:150, bars:24, reverb:0, orch:true, mode:'calm', softKick:true, arp:'bell8', leadV:'soft', shimmer:true, lift:true,
   chords:[[0,3,7],[-4,0,3],[5,8,12],[7,11,14]], bass:[-12,-16,-7,-5],
   lead: seqc(rep(R16,4), rep(A_ASTRAL,5)) });
 
