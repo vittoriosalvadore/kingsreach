@@ -1235,6 +1235,8 @@ function iconSpark(ctx,x,y){ var pal={C:'#fff4d0',G:'#f0d98c',g:'#d9b96a',D:'#8a
   _blit(ctx,x,y,["...G...","...g...",".G.C.D.","GgCCCgD",".G.C.D.","...g...","...D..."],pal); }
 function iconBoot(ctx,x,y){ var pal={H:'#a86b3a',L:'#7a4a26',D:'#4a2c16',S:'#8a743f',s:'#5a4a28'};
   _blit(ctx,x,y,[".HL....",".HL....",".HLD...",".HLD...",".HLLD..",".HLLLD.",".SSSSs."],pal); }
+function iconRune(ctx,x,y,col){ col=col||'#9fd8ff'; var pal={H:_shade(col,1.5),M:col,D:_shade(col,0.5)};   // signature-power glyph (a charged rune)
+  _blit(ctx,x,y,["...H...","..HMD..",".HMMMD.","HMMCMMD",".HMMMD.","..DMD..","...D..."],{H:pal.H,M:pal.M,D:pal.D,C:'#ffffff'}); }
 
 // ============================================================ HUD overlay (low-res canvas, world-pixel scale)
 const hud = $('hud'); const hctx = hud.getContext('2d'); hctx.imageSmoothingEnabled=false;
@@ -1250,39 +1252,39 @@ function drawHUD2D(){
   const HW=hud.width, HH=hud.height; if(!HW) return;
   hctx.clearRect(0,0,HW,HH); BTN.length=0;
   if(!(G.state==='combat'||G.state==='travel')) return;
-  // top: HP bar + number
-  const hpw=Math.round(HW*0.46);
-  pBar(hctx,3,3,hpw,8, G.hp/G.maxHp, {fill:'#c0392b',track:'#3a1715'});
-  const hptxt=Math.ceil(G.hp)+'/'+G.maxHp, hpx=3+Math.round((hpw-pfWidth(hptxt,1,1))/2);
+  // ---- top-LEFT column: HP (priority) → stats → buffs ----
+  const hpw=Math.round(HW*0.44);
+  pBar(hctx,4,3,hpw,8, G.hp/G.maxHp, {fill:'#c0392b',track:'#3a1715'});
+  const hptxt=Math.ceil(G.hp)+'/'+G.maxHp, hpx=4+Math.round((hpw-pfWidth(hptxt,1,1))/2);
   pfShadow(hctx,hptxt, hpx, 4, '#f4ece0','#3a0a08',1,1);
-  // stats row
-  let sx=4, sy=13; iconSword(hctx,sx,sy); sx=pf(hctx,''+G.atk, sx+8, sy+1,'#e8e2d2',1,1)+5;
+  let sx=4, sy=14; iconSword(hctx,sx,sy); sx=pf(hctx,''+G.atk, sx+8, sy+1,'#e8e2d2',1,1)+5;
   iconShield(hctx,sx,sy); sx=pf(hctx,''+G.def, sx+8, sy+1,'#e8e2d2',1,1)+5;
   if(G.crit){ pf(hctx,G.crit+'%', sx, sy+1,'#9c8f6a',1,1); }
-  // gold top-right
-  const gt=''+G.gold, gw=pfWidth(gt,1,1); iconCoin(hctx, HW-4-gw-9, 3); pf(hctx,gt, HW-3-gw, 4,'#d9b96a',1,1);
-  // biome + sub centered
-  const bn=curBiome().name.toUpperCase(), bw=pfWidth(bn,1,1); pfShadow(hctx,bn, Math.round(HW/2-bw/2), 2,'#d9b96a','#08070a',1,1);
-  const sub='ACT '+G.act+' · '+Math.floor(G.depth)+'M · '+G.kills+' SLAIN', sw=pfWidth(sub,1,1); pf(hctx,sub, Math.round(HW/2-sw/2), 11,'#9c8f6a',1,1);
-  // buff row
-  let bx=4, by=22; for(const b of G.tempBuffs){ const ic=b.stat==='atk'?iconSword:b.stat==='def'?iconShield:iconBoot; ic(hctx,bx,by); bx=pf(hctx,Math.ceil(b.t)+'',bx+8,by+1,'#9fe0a4',1,1)+4; }
+  let bx=4, by=24; for(const b of G.tempBuffs){ const ic=b.stat==='atk'?iconSword:b.stat==='def'?iconShield:iconBoot; ic(hctx,bx,by); bx=pf(hctx,Math.ceil(b.t)+'',bx+8,by+1,'#9fe0a4',1,1)+4; }
   if(G.atkDebuffT>0){ pf(hctx,'-ATK '+Math.ceil(G.atkDebuffT), bx, by+1,'#e0a0a0',1,1); }
-  // enemy plate
-  if(G.state==='combat' && G.enemy && !G.enemy.dead){ const en=(G.enemy.name||'').toUpperCase(), ew=pfWidth(en,1,1), ey=Math.round(HH*0.10);
+  // ---- top-RIGHT column: gold → location (right-aligned, so nothing collides at centre) ----
+  const gt=''+G.gold, gw=pfWidth(gt,1,1); pf(hctx,gt, HW-3-gw, 4,'#d9b96a',1,1); iconCoin(hctx, HW-5-gw-9, 3);
+  const bn=curBiome().name.toUpperCase(), bw=pfWidth(bn,1,1); pfShadow(hctx,bn, HW-3-bw, 14,'#d9b96a','#08070a',1,1);
+  const sub='ACT '+G.act+' · '+Math.floor(G.depth)+'M · '+G.kills+' SLAIN', sw=pfWidth(sub,1,1); pf(hctx,sub, HW-3-sw, 23,'#9c8f6a',1,1);
+  // ---- enemy plate (centre) ----
+  if(G.state==='combat' && G.enemy && !G.enemy.dead){ const en=(G.enemy.name||'').toUpperCase(), ew=pfWidth(en,1,1), ey=Math.round(HH*0.12);
     pfShadow(hctx,en, Math.round(HW/2-ew/2), ey,'#e9d6d2','#08070a',1,1);
     pBar(hctx, Math.round(HW/2-32), ey+9, 64, 5, G.enemy.hp/G.enemy.max, {fill:'#d14b3a',track:'#2a1414'}); }
-  // combo
-  if(G.combo>=2 && G.state==='combat'){ const ct='COMBO ×'+G.combo, cw=pfWidth(ct,1,1); pfShadow(hctx,ct, Math.round(HW/2-cw/2), Math.round(HH*0.26),'#ffd86a','#08070a',1,1); }
-  // log
-  if(logT>0 && hudLog){ const lw=pfWidth(hudLog,1,1); pfShadow(hctx,hudLog, Math.round(HW/2-lw/2), Math.round(HH*0.32),'#e8dcc0','#08070a',1,1); }
-  // focus bar
-  if(G.state==='combat'){ const fy=HH-52, ready=G.focus>=100; iconSpark(hctx, Math.round(HW/2-31), fy-1);
+  // combo + log (centre)
+  if(G.combo>=2 && G.state==='combat'){ const ct='COMBO ×'+G.combo, cw=pfWidth(ct,1,1); pfShadow(hctx,ct, Math.round(HW/2-cw/2), Math.round(HH*0.27),'#ffd86a','#08070a',1,1); }
+  if(logT>0 && hudLog){ const lw=pfWidth(hudLog,1,1); pfShadow(hctx,hudLog, Math.round(HW/2-lw/2), Math.round(HH*0.34),'#e8dcc0','#08070a',1,1); }
+  // ---- focus meter (above the centre SMITE button) ----
+  if(G.state==='combat'){ const fy=HH-56, ready=G.focus>=100; iconSpark(hctx, Math.round(HW/2-31), fy-1);
     pBar(hctx, Math.round(HW/2-21), fy, 42, 4, G.focus/100, {fill:ready?'#ffe6a0':'#d9b96a',track:'#2a2620'}); }
-  // buttons
-  hudBtn(HW-44, HH-44, 40,40, ()=>onStrike(), (ix,iy)=>iconSword(hctx,ix,iy), 'STRIKE', '#d2785a');
-  hudBtn(4, HH-38, 34,34, ()=>onDodge(chance(.5)?-1:1), (ix,iy)=>iconBoot(hctx,ix,iy), 'DODGE', '#5a8fd6');
-  if(G.state==='combat'&&G.focus>=100) hudBtn(Math.round(HW/2-18), HH-42, 36,36, ()=>onSmite(), (ix,iy)=>iconSpark(hctx,ix,iy), 'SMITE', '#ffd24a');
-  if((G.state==='combat'||G.state==='travel')&&G.potions.length>0) hudBtn(4, HH-76, 32,32, ()=>togglePotionTray(), (ix,iy)=>iconFlask(hctx,ix,iy,'#6cf09a'), '×'+G.potions.length, '#6cf09a');
+  // ---- controls: left [DODGE + POTION], right [STRIKE + POWER], centre SMITE ----
+  hudBtn(HW-46, HH-46, 40,40, ()=>onStrike(), (ix,iy)=>iconSword(hctx,ix,iy), 'STRIKE', '#d2785a');
+  hudBtn(6, HH-44, 38,38, ()=>onDodge(chance(.5)?-1:1), (ix,iy)=>iconBoot(hctx,ix,iy), 'DODGE', '#5a8fd6');
+  if((G.state==='combat'||G.state==='travel')&&G.potions.length>0) hudBtn(8, HH-86, 34,34, ()=>togglePotionTray(), (ix,iy)=>iconFlask(hctx,ix,iy,'#6cf09a'), '×'+G.potions.length, '#6cf09a');
+  if(G.state==='combat'&&G.focus>=100) hudBtn(Math.round(HW/2-18), HH-46, 36,36, ()=>onSmite(), (ix,iy)=>iconSpark(hctx,ix,iy), 'SMITE', '#ffd24a');
+  if(G.state==='combat'){ const pw=activePower(); if(pw){ const ready=G.powerCd<=0;   // mobile-usable signature power (key R on desktop)
+    if(!ready) hctx.globalAlpha=0.45;
+    hudBtn(HW-44, HH-88, 34,34, ()=>onPower(), (ix,iy)=>iconRune(hctx,ix,iy,'#9fd8ff'), ready?'POWER':Math.ceil(G.powerCd)+'', '#9fd8ff');
+    hctx.globalAlpha=1; } }
 }
 hud.addEventListener('pointerdown',e=>{ e.preventDefault(); const r=hud.getBoundingClientRect(); if(!r.width) return;
   const px=(e.clientX-r.left)/r.width*hud.width, py=(e.clientY-r.top)/r.height*hud.height;
