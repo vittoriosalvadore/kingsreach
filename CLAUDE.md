@@ -61,10 +61,15 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   a shared synth + orchestral voice palette (`kick`/`hat`/`snare`/`tom`/`sub`/`pluck`/`psaw`/`pad`/
   `bell`/`seqNote`/`softNote` plus `strings`/`brass`/`timp`/`pizz`/`choir`/`flute`/`harp`, pitched via
   `NOTE(n)`; arrange with `seqc`/`rep`). Every track is built by the shared
-  `makeSong({ms,bars,chords,bass,lead,mode,arp,leadV,orch,...})` helper: the bed (pad + chord-tone
-  arpeggio + bass) is built **only from the current chord's notes** so it stays coherent (never
-  "random"), while a hand-written foreground `lead` array carries one clear, memorable, repeated
-  melody (octave-`lift`ed in the 2nd half). **Each track is deliberately distinct** — its own chord
+  `makeSong({ms,bars,chords,bass,lead,mode,arp,leadV,orch,bassline,fills,harmony,reverb,...})` helper:
+  the bed (pad + chord-tone arpeggio + bass) is built **only from the current chord's notes** so it
+  stays coherent (never "random"), while a hand-written foreground `lead` array carries the melody.
+  Leads are arranged **A-A-B-A** (a main hook + a contrasting B-phrase answer, both over the same
+  cycling chords) instead of pure repetition. Chords are triads, but appending a 4th tone makes them
+  7th chords (`pad`/arp read `c[3]` when present — used for the cozy/sad tracks). Combat tracks carry
+  a moving `bassline` (16-step offsets from the bar root) + phrase-end drum `fills`; all music routes
+  through a shared convolution `reverb` whose depth is set per track (chill wetter, combat drier;
+  `ASTRAL` pins `reverb:0` to stay dry). **Each track is deliberately distinct** — its own chord
   progression (reuse notes, never copy another track's progression), its own `leadV` lead instrument
   (e.g. `choir`/`bell`/`saw`/`brass`/`strings`/`pluck`/`flute`/`psaw`/`soft`), its own `arp` motor,
   and its own `orch` accent flavor (`'strings'`/`'brass'`/`'choir'`/`'timpani'`/`'harp'`/`'flute'`,
