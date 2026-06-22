@@ -147,7 +147,8 @@
   .fc-desc{font-size:11px;color:#a99e82;margin-top:2px;line-height:1.3;}
   .fc-tag{font-size:9px;color:#cdbf9a;background:rgba(0,0,0,.4);border:1px solid #3a3326;border-radius:5px;padding:3px 6px;letter-spacing:.4px;flex:0 0 auto;text-align:center;max-width:80px;}
 
-  #shopItems,#catalogItems,#soulItems,#gearList,#jukeItems{display:flex;flex-direction:column;gap:9px;width:min(90%,350px);max-height:54vh;overflow-y:auto;}
+  #shopItems,#catalogItems,#soulItems,#gearList,#jukeItems{display:flex;flex-direction:column;gap:9px;width:min(90%,350px);max-height:54vh;overflow-y:auto;
+    touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
   .shopitem{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
     background:linear-gradient(180deg,rgba(26,22,16,.96),rgba(10,9,7,.97));border:1px solid #463d2c;text-align:left;}
   .shopitem.playing{border-color:#c9a8ff;box-shadow:0 0 14px rgba(140,111,212,.5);}
@@ -162,6 +163,13 @@
   .si-buy.nope{animation:nope .3s;}
   @keyframes nope{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
   #shopGold,#catalogGold{font-size:14px;color:var(--gold);}
+  /* minimal always-on close affordance for modal panels — guarantees an exit on phones */
+  .ovx{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;z-index:4;
+    width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    pointer-events:auto;cursor:pointer;font-family:Georgia,serif;font-size:19px;line-height:1;color:var(--gold);
+    background:rgba(14,10,6,.7);border:1px solid var(--gold-dim);box-shadow:0 2px 10px rgba(0,0,0,.55);
+    transition:transform .08s,background .12s,border-color .12s;}
+  .ovx:active{transform:scale(.9);background:rgba(40,28,12,.85);}
 
   #evIcon{font-size:46px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.6));}
   #evTitle{font-family:Georgia,serif;font-size:24px;color:var(--gold);letter-spacing:1px;}
@@ -361,6 +369,7 @@
 
   <!-- Soul Shrine (meta-progression) -->
   <div id="soulOv" class="overlay hidden">
+    <button class="ovx" id="xSoul" aria-label="Close">✕</button>
     <div class="subtitle">Spend the souls of your fallen selves</div>
     <div class="title" style="font-size:25px;">Soul Shrine</div>
     <div id="soulCount" style="font-size:15px;color:#c9a8ff;">⟡ 0</div>
@@ -370,6 +379,7 @@
 
   <!-- Jukebox — audition every track on demand -->
   <div id="jukeboxOv" class="overlay hidden">
+    <button class="ovx" id="xJuke" aria-label="Close">✕</button>
     <div class="subtitle">Songs from the cursed road</div>
     <div class="title" style="font-size:25px;">Jukebox</div>
     <div id="jukeNow" class="hint" style="margin-bottom:6px;">Tap a song to play it</div>
@@ -382,6 +392,7 @@
 
   <!-- Equipped gear panel -->
   <div id="gearOv" class="overlay hidden">
+    <button class="ovx" id="xGear" aria-label="Close">✕</button>
     <div class="subtitle">What you carry into the dark</div>
     <div class="title" style="font-size:25px;">Equipment</div>
     <div id="gearStats" style="font-size:12px;color:#cdbf9a;letter-spacing:.3px;"></div>
@@ -410,6 +421,7 @@
 
   <!-- Road merchant -->
   <div id="shopOv" class="overlay hidden">
+    <button class="ovx" id="xShop" aria-label="Close">✕</button>
     <div class="subtitle">A hooded figure waits</div>
     <div class="title" style="font-size:25px;">Wandering Merchant</div>
     <div id="shopGold">◈0</div>
@@ -419,6 +431,7 @@
 
   <!-- Town shop catalog -->
   <div id="catalogOv" class="overlay hidden">
+    <button class="ovx" id="xCatalog" aria-label="Close">✕</button>
     <div class="subtitle" id="catalogSub">Wares</div>
     <div class="title" id="catalogTitle" style="font-size:24px;">Blacksmith</div>
     <div id="catalogGold">◈0</div>
@@ -1037,17 +1050,20 @@ function weaponTex(type){ if(_wpnCache[type]) return _wpnCache[type];
   s.d(x,s.w,s.h, WEAPON_DEF[type].color);
   const tex=new THREE.CanvasTexture(cv);tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.colorSpace=THREE.SRGBColorSpace;
   const rec={tex,aspect:s.w/s.h,H:s.h};_wpnCache[type]=rec;return rec; }
+const WPN_REST_Z=0.16;   // resting blade lean (also the swing's start angle); shared by setWeapon + update
 function buildWeaponMesh(type){
   const g=new THREE.Group(); const rec=weaponTex(type);
   const worldH=(rec.H/40)*0.92, Wd=worldH*rec.aspect;
   const m=new THREE.Mesh(new THREE.PlaneGeometry(Wd,worldH), new THREE.MeshBasicMaterial({map:rec.tex,transparent:true,alphaTest:0.4,depthWrite:false,fog:false}));
-  m.position.set(0.04,-0.18,-0.55); m.rotation.z=-0.42; g.add(m); // corner viewmodel: pushed back, leaned, grip low-right
+  // Sprites are drawn grip-at-bottom; offset the plane up by half its height so the GRIP sits at the
+  // group origin. The swing rotates this group, so the pivot is the hilt and the BLADE leads the arc.
+  m.position.set(0, worldH*0.5, 0); g.add(m);
   return g;
 }
 function setWeapon(type){
   if(weaponMesh) weaponRig.remove(weaponMesh);
   weaponMesh = buildWeaponMesh(type);
-  weaponMesh.position.set(.28,-.34,-.55); weaponMesh.rotation.set(.1,-.15,.05);
+  weaponMesh.position.set(.34,-.98,-1.05); weaponMesh.rotation.set(.1,-.15,WPN_REST_Z);
   weaponRig.add(weaponMesh);
 }
 
@@ -1764,6 +1780,7 @@ function openShop(){
   show('shopOv');
 }
 bindBtn($('leaveShopBtn'), ()=>{ hide('shopOv'); resumeTravel(); });
+bindBtn($('xShop'), ()=>{ hide('shopOv'); resumeTravel(); });
 
 // ---- event card (shrine / rest / cache) ----
 function showEvent(icon,title,bodyHTML,btns){
@@ -1888,6 +1905,7 @@ function openSoulShrine(){
 function leaveSoulShrine(){ hide('soulOv'); G.state='town'; $('townSouls').textContent='⟡ '+META.souls+' souls'; show('townOv'); }
 bindBtn($('soulBtn'), openSoulShrine);
 bindBtn($('leaveSoulBtn'), leaveSoulShrine);
+bindBtn($('xSoul'), leaveSoulShrine);
 // ---- per-biome road/combat theme: each land gets its own banger (boss is always The Guardian) ----
 function roadMusic(){
   const n=curBiome().name;
@@ -1932,6 +1950,7 @@ bindBtn($('jukeboxBtn'), ()=>openJukebox('titleOv'));
 bindBtn($('townJukeBtn'), ()=>openJukebox('townOv'));
 bindBtn($('jukeStopBtn'), jukeStop);
 bindBtn($('leaveJukeBtn'), closeJukebox);
+bindBtn($('xJuke'), closeJukebox);
 function openGear(){
   G.state='shop'; hide('townOv');
   const parts=[`⚔ ${G.atk}`,`🛡 ${G.def}`,`❤ ${G.maxHp}`];
@@ -1965,6 +1984,7 @@ function openGear(){
 function leaveGear(){ hide('gearOv'); G.state='town'; show('townOv'); }
 bindBtn($('gearBtn'), openGear);
 bindBtn($('leaveGearBtn'), leaveGear);
+bindBtn($('xGear'), leaveGear);
 function talkNPC(npc){
   G.townNPC=npc; hide('townOv');
   $('dlgPortrait').textContent=npc.icon; $('dlgName').textContent=npc.name; $('dlgRole').textContent=npc.role;
@@ -2031,6 +2051,7 @@ function openShopCatalog(type){
   hide('dlgOv'); show('catalogOv');
 }
 bindBtn($('leaveCatalogBtn'), leaveShop);
+bindBtn($('xCatalog'), leaveShop);
 
 // ============================================================ biome-reveal cutscene
 const REVEAL_DUR=3.4;
@@ -2219,9 +2240,9 @@ function update(dt){
   }
   if(G.state!=='town'){ townLight.intensity=lerp(townLight.intensity,0,dt*4); townFill.intensity=lerp(townFill.intensity,0,dt*4); hemi.intensity=lerp(hemi.intensity,0.9,dt*3); }
   if(weaponMesh){
-    weaponMesh.position.x=.28+Math.sin(G.bob*.5)*.012-G.dodgeX*.05;
-    weaponMesh.position.y=-.34+Math.cos(G.bob)*.012;
-    weaponMesh.rotation.z=.05+(G.swinging?swingPose():0);
+    weaponMesh.position.x=.34+Math.sin(G.bob*.5)*.012-G.dodgeX*.05;
+    weaponMesh.position.y=-.98+Math.cos(G.bob)*.012;
+    weaponMesh.rotation.z=WPN_REST_Z+(G.swinging?swingPose():0);
     if(weaponMesh.userData.glowOrb) weaponMesh.userData.glowOrb.material.emissiveIntensity=2.2+Math.sin(now*.006)*.8;
   }
   if(Q.slash && G.swinging && G.weaponType!=='staff'){ const s=Math.sin(clamp(G.swingT,0,1)*Math.PI);
@@ -2270,7 +2291,9 @@ function update(dt){
     if(pw){ ui.power.querySelector('.ico').textContent=pw.icon; ui.power.style.opacity = G.powerCd>0?0.4:1; } }
   if(playing) refreshHUD();
 }
-function swingPose(){ return -Math.sin(clamp(G.swingT,0,1)*Math.PI)*1.5; }
+// Slash sweeps counter-clockwise (same direction as the slashArc FX) so the BLADE arcs across
+// the view from the lower-right grip, instead of rotating off-screen.
+function swingPose(){ return Math.sin(clamp(G.swingT,0,1)*Math.PI)*1.6; }
 
 function render(){
   if(Q.bloom && bloomReady && composer){
