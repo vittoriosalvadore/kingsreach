@@ -58,14 +58,20 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
 - **`src/audio.js`** — all procedural Web Audio: `audio(kind)` SFX, `audioStart`, `startShopAmbience`/
   `stopShopAmbience`, and the **music engine**. Music is a single-track engine (`playSong`/`stopSong`,
   one `setInterval` — starting a song auto-stops the previous, so tracks are mutually exclusive) plus
-  a shared synth-voice palette (`kick`/`hat`/`snare`/`tom`/`sub`/`pluck`/`psaw`/`pad`/`bell`/`seqNote`/
-  `softNote`, pitched via `NOTE(n)`; arrange with `seqc`/`rep`). Most tracks are built by the shared
-  `makeSong({ms,bars,chords,bass,lead,mode,arp,leadV,...})` helper: the bed (pad + chord-tone
+  a shared synth + orchestral voice palette (`kick`/`hat`/`snare`/`tom`/`sub`/`pluck`/`psaw`/`pad`/
+  `bell`/`seqNote`/`softNote` plus `strings`/`brass`/`timp`/`pizz`/`choir`/`flute`/`harp`, pitched via
+  `NOTE(n)`; arrange with `seqc`/`rep`). Every track is built by the shared
+  `makeSong({ms,bars,chords,bass,lead,mode,arp,leadV,orch,...})` helper: the bed (pad + chord-tone
   arpeggio + bass) is built **only from the current chord's notes** so it stays coherent (never
   "random"), while a hand-written foreground `lead` array carries one clear, memorable, repeated
-  melody (octave-`lift`ed in the 2nd half). Combat tracks use `mode:'drive'`/`'march'` (synthwave);
-  chill tracks `'soft'`/`'calm'`. `ASTRAL` stays hand-authored (an IIFE) — it's the atmospheric one
-  that already worked. Tracks `MENU`, `TOWN`, `BATTLE`, `BOSS`, `LAMENT`, `FOREST`, `MORNING`,
+  melody (octave-`lift`ed in the 2nd half). **Each track is deliberately distinct** — its own chord
+  progression (reuse notes, never copy another track's progression), its own `leadV` lead instrument
+  (e.g. `choir`/`bell`/`saw`/`brass`/`strings`/`pluck`/`flute`/`psaw`/`soft`), its own `arp` motor,
+  and its own `orch` accent flavor (`'strings'`/`'brass'`/`'choir'`/`'timpani'`/`'harp'`/`'flute'`,
+  fired only at each 4-bar phrase start — a touch, not a full orchestra). Combat tracks use
+  `mode:'drive'`/`'march'` (synthwave); chill tracks `'soft'`/`'calm'`. `ASTRAL` is the loved
+  atmospheric one — leave it as-is (it uses the legacy `orch:true` blend, kept working by a fallback
+  branch in the accent block). Tracks `MENU`, `TOWN`, `BATTLE`, `BOSS`, `LAMENT`, `FOREST`, `MORNING`,
   `EMBER`, `ASTRAL`, each `{ms,len,voice(t,s)}`, exported as `start*Music`/`stop*Music`. `musicSelfTest()` runs every song's `voice` across a full loop (used by the smoke
   test to catch runtime errors). The game wires these in `index.html`: the title shows the in-game
   **Jukebox** (audition any track) and combat picks a per-biome road theme via `roadMusic()`; boss
