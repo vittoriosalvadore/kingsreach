@@ -20,10 +20,18 @@
 </script>
 <style>
   :root{
-    --gold:#d9b96a; --gold-dim:#8a743f;
+    --gold:#d9b96a; --gold-dim:#8a743f; --gold-soft:#caa44a;
     --hp:#c0392b; --hp-bg:#3a1715;
-    --ink:#e8e2d2; --panel:#0d0c0a;
+    --ink:#e8e2d2; --panel:#160f08; --panel-2:#0d0a06;
+    --ink-bright:#e8dcc0; --ink-mid:#cdbf9a; --ink-dim:#8c8062;
+    --line:#2a2218; --bevel-lt:#4a4334; --bevel-dk:#08070a; --frost:#c9a8ff;
+    --scrim:linear-gradient(rgba(0,0,0,0) 30%, rgba(4,3,8,.62) 86%);
+    --lift-sheet:0 -2px 0 #000, 0 -16px 30px rgba(0,0,0,.5);
     --common:#9a9a9a; --uncommon:#5fb368; --rare:#5a8fd6; --epic:#a86fd4;
+    /* motion — short, weighty, transform/opacity-only (60fps over the live 3D scene) */
+    --t-fast:120ms; --t-base:220ms; --t-slow:300ms; --t-stagger:34ms;
+    --e-enter:cubic-bezier(.16,1,.30,1); --e-exit:cubic-bezier(.55,0,.85,.20);
+    --e-settle:cubic-bezier(.18,.9,.22,1.05); --e-press:cubic-bezier(.3,0,.1,1);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;background:#000;overflow:hidden;
@@ -123,23 +131,43 @@
 
   .overlay{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;
     text-align:center;padding:30px;gap:14px;background:radial-gradient(120% 90% at 50% 40%,rgba(8,6,12,.55),rgba(0,0,0,.92));
-    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:auto;}
-  .overlay.hidden{display:none;}
+    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:auto;
+    opacity:1;visibility:visible;transition:opacity var(--t-base) var(--e-enter),visibility 0ms;}
+  /* animatable hide: fade the backdrop, slide the sheet away, then drop out of hit-testing */
+  .overlay.hidden{opacity:0;pointer-events:none;transition:opacity var(--t-base) var(--e-exit),visibility 0ms var(--t-base);visibility:hidden;}
+  .overlay:not(.sheet) > *{transition:transform var(--t-slow) var(--e-enter),opacity var(--t-slow) var(--e-enter);}
+  .overlay:not(.sheet).hidden > *{transform:scale(1.03);opacity:0;transition:transform var(--t-fast) var(--e-exit),opacity var(--t-fast) var(--e-exit);}
   /* ===== bottom-sheet menus: contained, scrollable panels that keep the 3D scene visible ===== */
-  .overlay.sheet{justify-content:flex-end;align-items:center;padding:0;gap:0;
-    background:linear-gradient(rgba(0,0,0,0) 36%,rgba(4,3,8,.5) 86%);
+  .overlay.sheet{justify-content:flex-end;align-items:center;padding:0;gap:0;background:var(--scrim);
     -webkit-backdrop-filter:none;backdrop-filter:none;}
-  .sheet-panel{position:relative;width:100%;max-width:480px;max-height:74vh;display:flex;flex-direction:column;
-    text-align:center;background:linear-gradient(180deg,rgba(20,16,10,.975),rgba(10,9,7,.985));
-    border-top:1px solid #4a4030;border-radius:16px 16px 0 0;box-shadow:0 -10px 34px rgba(0,0,0,.6);
-    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);}
-  .sheet-grab{flex:0 0 auto;width:38px;height:4px;border-radius:3px;background:#4a4334;margin:8px auto 2px;}
-  .sheet-head{flex:0 0 auto;position:relative;padding:4px 44px 8px;display:flex;flex-direction:column;gap:3px;}
-  .sheet-head .title{font-size:21px;margin:0;}
+  .sheet-panel{position:relative;width:100%;max-width:480px;max-height:76vh;display:flex;flex-direction:column;
+    text-align:center;background:var(--panel);
+    border-top:2px solid var(--bevel-lt);box-shadow:var(--lift-sheet);
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+    transform:translateY(0);transition:transform var(--t-base) var(--e-settle);}
+  /* the sheet rises like a portcullis (slide only — a solid-iron panel doesn't fade) */
+  .overlay.sheet.hidden .sheet-panel{transform:translateY(101%);opacity:1;transition:transform var(--t-base) var(--e-exit);}
+  .sheet-grab{flex:0 0 auto;width:34px;height:3px;background:var(--bevel-lt);margin:8px auto 3px;
+    transition:transform var(--t-fast) var(--e-press),opacity var(--t-fast) linear;}
+  .sheet-panel:active .sheet-grab{transform:scaleX(1.25);opacity:.7;}
+  .sheet-head{flex:0 0 auto;position:relative;padding:6px 48px 14px;display:flex;flex-direction:column;gap:7px;}
+  .sheet-head .title{font-size:18px;margin:0;line-height:1.3;}
+  .sheet-head .subtitle{line-height:1.4;}
   .sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;
-    display:flex;flex-direction:column;gap:9px;align-items:stretch;padding:6px 16px;width:auto;}
-  .sheet-foot{flex:0 0 auto;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:10px 16px 2px;}
-  .sheet-panel .ovx{top:9px;right:11px;}
+    display:flex;flex-direction:column;gap:0;align-items:stretch;padding:0 16px;width:auto;}
+  .sheet-foot{flex:0 0 auto;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px 16px 2px;}
+  .sheet-panel .ovx{top:9px;right:10px;}
+  /* staggered row entrance when a sheet opens (transform/opacity only; index capped in JS) */
+  @keyframes rowIn{from{transform:translateY(9px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .overlay.sheet:not(.hidden) .sheet-body > *{animation:rowIn var(--t-base) var(--e-enter) both;animation-delay:calc(var(--i,0) * var(--t-stagger));}
+  .sheet-body > *:nth-child(2){--i:1;} .sheet-body > *:nth-child(3){--i:2;} .sheet-body > *:nth-child(4){--i:3;}
+  .sheet-body > *:nth-child(5){--i:4;} .sheet-body > *:nth-child(6){--i:5;} .sheet-body > *:nth-child(7){--i:6;}
+  .sheet-body > *:nth-child(8){--i:7;} .sheet-body > *:nth-child(n+9){--i:8;}
+  @media (prefers-reduced-motion: reduce){
+    .overlay, .overlay:not(.sheet) > *, .sheet-panel, .sheet-grab{transition-duration:1ms !important;}
+    .overlay.sheet:not(.hidden) .sheet-body > *{animation:none !important;opacity:1 !important;}
+    .overlay.sheet.hidden .sheet-panel{transform:translateY(101%);}
+  }
   .title{font-family:Georgia,"Times New Roman",serif;font-size:40px;letter-spacing:3px;color:var(--gold);
     text-shadow:0 2px 14px rgba(217,185,106,.35),0 2px 4px #000;line-height:1.05;}
   .subtitle{font-size:13px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;}
@@ -192,8 +220,8 @@
 
   #townOv{justify-content:flex-end;padding-bottom:26px;background:linear-gradient(rgba(0,0,0,0) 40%,rgba(4,3,8,.82) 78%);backdrop-filter:none;-webkit-backdrop-filter:none;}
   #townHead{position:absolute;top:54px;left:0;right:0;text-align:center;}
-  #townName{font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 2px 12px rgba(217,185,106,.4),0 2px 5px #000;}
-  #townSub{font-size:11px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;margin-top:3px;}
+  #townName{font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 2px 12px rgba(217,185,106,.4),0 2px 5px #000;line-height:1.2;}
+  #townSub{font-size:11px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;margin-top:5px;line-height:1.5;}
   #townPanel{display:flex;flex-direction:column;gap:11px;width:min(94%,360px);pointer-events:auto;}
   #townStats{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;color:var(--gold);letter-spacing:.5px;}
   #townStats .tstat{font-family:Georgia,serif;}
@@ -302,17 +330,33 @@
   .overlay .body, #dlgText, .fc-desc, .si-desc, #cardstats, .crow, #cmpline,
   .lootbtn, .cta, .si-buy, #townSub, #evBody, #shopGold, #catalogGold, #townStats, #soulCount, #revealAct, #revealSub{
     font-size:14px !important; line-height:1.5 !important; font-style:normal !important; }
-  .fc-name, .si-name, #cardname, #townName, #evTitle, #revealName, #dlgName{ font-size:21px !important; color:#d9b96a !important; }
-  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, .tbtn, .sheet-panel, #townSettings, #titleSettings{
+  .fc-name, #cardname, #townName, #evTitle, #revealName, #dlgName{ font-size:21px !important; color:#d9b96a !important; }
+  #card, #dlgPanel, .forkchoice, .npcbtn, .tbtn, #townSettings, #titleSettings{
     border-radius:0 !important; box-shadow:none !important; background:#160f08 !important;
     border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
-  .krfont .sheet-head .title{ font-size:18px !important; margin:0 !important; }
+  .krfont .sheet-head .title{ font-size:18px !important; margin:0 !important; line-height:1.3 !important; }
+  .krfont .sheet-head .subtitle{ font-size:11px !important; line-height:1.5 !important; color:var(--ink-dim) !important; }
   .krfont .sheet-grab{ background:#4a4334 !important; }
-  .cta, .lootbtn, .si-buy{
-    border-radius:0 !important; box-shadow:none !important; background:#3a2a12 !important; color:#f0e6cc !important; text-shadow:1px 1px 0 #08070a !important;
+  /* Quiet Iron: the sheet is one flat surface with a single candle-lit top lip */
+  .krfont .sheet-panel{ background:var(--panel) !important; border:0 !important; border-top:2px solid !important;
+    border-image:linear-gradient(90deg,var(--bevel-dk),var(--gold-soft),var(--bevel-dk)) 1 !important; box-shadow:var(--lift-sheet) !important; }
+  /* list rows: a quiet ledger — borderless, hairline-divided, the icon carries the weight */
+  .krfont .shopitem{ background:transparent !important; border:0 !important; border-bottom:1px solid var(--line) !important;
+    box-shadow:none !important; border-radius:0 !important; padding:11px 2px !important; }
+  .krfont .sheet-body > .shopitem:last-child{ border-bottom:0 !important; }
+  .krfont .shopitem.playing{ box-shadow:inset 2px 0 0 var(--gold) !important; }
+  .krfont .si-name{ font-size:16px !important; color:var(--ink-bright) !important; line-height:1.32 !important; }
+  .krfont .si-desc{ color:var(--ink-dim) !important; line-height:1.45 !important; margin-top:2px; }
+  .krfont .fc-name{ line-height:1.3 !important; } .krfont #cardname{ line-height:1.3 !important; }
+  .krfont .fc-desc{ line-height:1.45 !important; }
+  /* one gold ACTION per screen: primary CTA is gold-lit; everything else is a quiet outline */
+  .cta, .lootbtn.primary{
+    border-radius:0 !important; box-shadow:none !important; background:#5a4216 !important; color:#fff4d8 !important; text-shadow:1px 1px 0 #08070a !important;
     border:2px solid #08070a !important; border-top-color:#caa44a !important; border-left-color:#caa44a !important; border-right-color:#5a3a10 !important; border-bottom-color:#5a3a10 !important; }
-  .cta{ background:#5a4216 !important; }
-  .lootbtn.primary, .cta{ color:#fff4d8 !important; }
+  .si-buy, .lootbtn.ghost, .lootbtn:not(.primary){
+    border-radius:0 !important; box-shadow:none !important; background:transparent !important; color:var(--ink-mid) !important; text-shadow:none !important;
+    border:1px solid var(--bevel-lt) !important; }
+  .cta:active{ border-top-color:#5a3a10 !important; border-left-color:#5a3a10 !important; border-right-color:#caa44a !important; border-bottom-color:#caa44a !important; }
   #dlgPortrait{ border-radius:0 !important; border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
   /* live-3D-backdrop overlays (town hub / dialogue): let the scene show THROUGH the pixel chrome */
   #townOv .npcbtn, .krfont .tbtn, #dlgPanel{ background:rgba(16,11,6,.56) !important; }
@@ -325,6 +369,9 @@
   .krfont .tbtn{ font-size:15px !important; padding:8px 4px !important; }
   .krfont .tbtn span{ font-size:9px !important; }
   .krfont .tslabel{ font-size:9px !important; color:#8c8062 !important; }
+  /* smooth, weighty press feedback (transform-only) on every interactive control */
+  .cta,.si-buy,.lootbtn,.tbtn,.npcbtn,.ovx,.forkchoice,.pi{ transition:transform var(--t-fast) var(--e-press); }
+  .si-buy:active,.lootbtn:active,.forkchoice:active{ transform:scale(.96); }
 </style>
 </head>
 <body>
@@ -2128,8 +2175,8 @@ bindBtn($('takeRoadBtn'), takeTheRoad);
 // ---- town shop catalog ----
 function openShopCatalog(type){
   G.shopType=type; G.state='shop';
-  $('catalogTitle').textContent = type==='armor'?'Borin · Blacksmith':type==='trinket'?'Ysolde · Jeweler':type==='weapon'?'Garrick · Arms Dealer':'Old Maeve · Alchemist';
-  $('catalogSub').textContent = type==='potion'?'Potions & elixirs':type==='weapon'?'Arms & implements':'Wares';
+  $('catalogTitle').textContent = type==='armor'?'Borin':type==='trinket'?'Ysolde':type==='weapon'?'Garrick':'Old Maeve';
+  $('catalogSub').textContent = type==='armor'?'Blacksmith':type==='trinket'?'Jeweler':type==='weapon'?'Arms Dealer':'Alchemist';
   $('catalogGold').textContent='◈'+G.gold;
   const wrap=$('catalogItems'); wrap.innerHTML='';
   const offers=[];
