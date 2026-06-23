@@ -111,6 +111,14 @@ Modularization is in progress. The pure, dependency-free pieces have been pulled
   code that *places* them (`townCrowdFig`, the `buildTownVillage` IIFE) stays in `index.html`
   because it wires into `townGroup`/`townHouse`/`townCrowd`.
 
+- **`src/icons.js`** — hand-coded pixel-art **UI icons** rendered as crisp inline SVG, so the DOM
+  menus match the 16-bit look instead of using OS emoji (which differ per device). Each icon is a
+  char-grid + palette (same format as the canvas HUD `_blit` icons). `uiIcon(name, px)` returns an
+  `<svg>` string for use in `innerHTML`; `PXI` is the registry; `ALIAS` maps semantic names. Data
+  tables store an icon **name** (e.g. `icon:'anvil'`) and render sites call `uiIcon(...)`. Item icons
+  are special-cased in `index.html` (`itemIconHTML`): weapons reuse their actual pixel sprite
+  (`weaponIconURL`), gear uses a slot glyph (`SLOT_ICON`). Pure & dependency-free.
+
 `scripts/check-syntax.mjs` checks these modules too; the service worker precaches them. When
 extracting more, keep modules at the leaf (no imports from siblings, or only from `helpers`) to
 avoid circular imports — most of the remaining code is tightly coupled to the shared mutable `G`.

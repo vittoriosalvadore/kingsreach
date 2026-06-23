@@ -11,7 +11,7 @@
 //
 // Bump CACHE on every deploy that changes precached immutables, or to force a
 // purge of stale caches from older versions.
-const CACHE = 'kingsreach-v2';
+const CACHE = 'kingsreach-v3';
 const SHELL = [
   './vendor/opentype.min.js',
   './vendor/three/three.module.js',
@@ -24,6 +24,7 @@ const SHELL = [
   './src/textures.js',
   './src/fx.js',
   './src/gear.js',
+  './src/icons.js',
   './src/props.js',
   './src/villagers.js',
   './',

@@ -386,8 +386,8 @@
         <button id="beginBtn" class="cta">ENTER KINGSREACH</button>
       </div>
       <div id="titleUtil">
-        <button id="jukeboxBtn" class="tbtn">🎵<span>Jukebox</span></button>
-        <button id="titleCfgBtn" class="tbtn">⚙<span>Options</span></button>
+        <button id="jukeboxBtn" class="tbtn" data-icon="note"><span>Jukebox</span></button>
+        <button id="titleCfgBtn" class="tbtn" data-icon="cog"><span>Options</span></button>
       </div>
       <div id="titleSettings" class="hidden">
         <div class="tslabel">Graphics quality</div>
@@ -411,10 +411,10 @@
         <div class="tslabel">Brightness</div><div id="townBright" class="perfrow"></div>
       </div>
       <div id="townActions">
-        <button id="gearBtn" class="tbtn">📋<span>Gear</span></button>
-        <button id="soulBtn" class="tbtn">⟡<span>Souls</span></button>
-        <button id="townJukeBtn" class="tbtn">🎵<span>Music</span></button>
-        <button id="townCfgBtn" class="tbtn">⚙<span>Options</span></button>
+        <button id="gearBtn" class="tbtn" data-icon="pack"><span>Gear</span></button>
+        <button id="soulBtn" class="tbtn" data-icon="soul"><span>Souls</span></button>
+        <button id="townJukeBtn" class="tbtn" data-icon="note"><span>Music</span></button>
+        <button id="townCfgBtn" class="tbtn" data-icon="cog"><span>Options</span></button>
       </div>
       <button id="takeRoadBtn" class="cta">TAKE THE ROAD →</button>
     </div>
@@ -472,7 +472,7 @@
   <div id="dlgOv" class="overlay hidden">
     <div id="dlgPanel">
       <div id="dlgTop">
-        <div id="dlgPortrait">🛡️</div>
+        <div id="dlgPortrait"></div>
         <div><div id="dlgName">Borin</div><div id="dlgRole">Blacksmith</div></div>
       </div>
       <div id="dlgText"></div>
@@ -527,7 +527,7 @@
     <div class="sheet-panel">
       <div class="sheet-grab"></div>
       <div class="sheet-head">
-        <div id="evIcon">🔥</div>
+        <div id="evIcon"></div>
         <div id="evTitle">Shrine</div>
       </div>
       <div class="sheet-body"><div id="evBody" class="body"></div></div>
@@ -543,7 +543,7 @@
       <div class="sheet-body">
         <div id="card">
           <div id="cardrar">Common</div>
-          <div id="cardicon">⚔</div>
+          <div id="cardicon"></div>
           <div id="cardslot">Weapon</div>
           <div id="cardname">Rusted Fang</div>
           <div id="cardstats"></div>
@@ -595,6 +595,7 @@ import { MOTE_N, moteGeo, moteMat, motes, burst, updateFX, shock, updateShock, u
   WEATHER_N, wGeo, wPos, wMat, weather, updateWeather, mistMat, mistPlanes, updateMist,
   slashMat, slashArc, WX } from './src/fx.js';
 import { rollRarity, makeWeaponItem, statRows, statShort, makeGear, genGear } from './src/gear.js';
+import { uiIcon, hasIcon } from './src/icons.js';
 import { PROP_FN, PX } from './src/props.js';
 import { villagerSprite, CROWD_POOL, VILLAGER_PAL, buildNpcFig } from './src/villagers.js';
 
@@ -1143,6 +1144,17 @@ function weaponTex(type){ if(_wpnCache[type]) return _wpnCache[type];
   s.d(x,s.w,s.h, WEAPON_DEF[type].color);
   const tex=new THREE.CanvasTexture(cv);tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.colorSpace=THREE.SRGBColorSpace;
   const rec={tex,aspect:s.w/s.h,H:s.h};_wpnCache[type]=rec;return rec; }
+// DOM icon for an item: weapons reuse their actual pixel sprite; gear uses a slot pixel icon.
+const _wpnURL={};
+function weaponIconURL(type){ if(_wpnURL[type]) return _wpnURL[type];
+  const s=WPN_DRAW[type]||WPN_DRAW.sword; const cv=document.createElement('canvas'); cv.width=s.w; cv.height=s.h;
+  const x=cv.getContext('2d'); x.imageSmoothingEnabled=false; s.d(x,s.w,s.h, WEAPON_DEF[type].color);
+  return _wpnURL[type]=cv.toDataURL(); }
+const SLOT_ICON={armor:'shield',helmet:'helm',gloves:'glove',under:'shirt',trinket:'gem',talisman:'charm'};
+function itemIconHTML(it, px){ px=px||30; if(!it) return '';
+  if(it.slot==='weapon' || it.wtype){ const t=it.wtype||'sword', s=WPN_DRAW[t]||WPN_DRAW.sword;
+    return `<img src="${weaponIconURL(t)}" width="${Math.round(px*s.w/s.h)}" height="${px}" style="image-rendering:pixelated;vertical-align:middle">`; }
+  return uiIcon(SLOT_ICON[it.slot]||'gem', px); }
 const WPN_REST_Z=0.16;   // resting blade lean (also the swing's start angle); shared by setWeapon + update
 function buildWeaponMesh(type){
   const g=new THREE.Group(); const rec=weaponTex(type);
@@ -1170,11 +1182,11 @@ function setWeapon(type){
 
 // ============================================================ POTIONS
 const POTIONS = [
-  {id:'heal',  name:'Healing Draught', icon:'❤', desc:'Restore 45% health', price:a=>28+a*8,  use:()=>{ G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.45); }},
-  {id:'great', name:'Greater Elixir',  icon:'💖', desc:'Restore 85% health', price:a=>55+a*14, use:()=>{ G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.85); }},
-  {id:'rage',  name:'Rage Draught',    icon:'⚔', desc:'+8 Attack for 14s',  price:a=>40+a*12, use:()=>{ G.tempBuffs.push({stat:'atk',amt:8,t:14,icon:'⚔'}); recalc(); }},
-  {id:'stone', name:'Stoneskin Brew',  icon:'🛡', desc:'+6 Defense for 14s', price:a=>36+a*11, use:()=>{ G.tempBuffs.push({stat:'def',amt:6,t:14,icon:'🛡'}); recalc(); }},
-  {id:'swift', name:'Swift Tonic',     icon:'➤', desc:'+25% Swiftness 14s',  price:a=>34+a*11, use:()=>{ G.tempBuffs.push({stat:'speed',amt:25,t:14,icon:'➤'}); recalc(); }},
+  {id:'heal',  name:'Healing Draught', icon:'heart', desc:'Restore 45% health', price:a=>28+a*8,  use:()=>{ G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.45); }},
+  {id:'great', name:'Greater Elixir',  icon:'heart', desc:'Restore 85% health', price:a=>55+a*14, use:()=>{ G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.85); }},
+  {id:'rage',  name:'Rage Draught',    icon:'sword', desc:'+8 Attack for 14s',  price:a=>40+a*12, use:()=>{ G.tempBuffs.push({stat:'atk',amt:8,t:14,icon:'sword'}); recalc(); }},
+  {id:'stone', name:'Stoneskin Brew',  icon:'shield', desc:'+6 Defense for 14s', price:a=>36+a*11, use:()=>{ G.tempBuffs.push({stat:'def',amt:6,t:14,icon:'shield'}); recalc(); }},
+  {id:'swift', name:'Swift Tonic',     icon:'boot', desc:'+25% Swiftness 14s',  price:a=>34+a*11, use:()=>{ G.tempBuffs.push({stat:'speed',amt:25,t:14,icon:'boot'}); recalc(); }},
 ];
 
 // ============================================================ HUD
@@ -1448,7 +1460,7 @@ function onSmite(){
 }
 // ---- Awakenings: signature active powers taken from the guardians you lay to rest ----
 const POWERS = {
-  rimebrand: { id:'rimebrand', name:'Rimebrand', icon:'❄', cd:7.5,
+  rimebrand: { id:'rimebrand', name:'Rimebrand', icon:'snow', cd:7.5,
     use(){ const e=G.enemy, g=G.eGrp; if(!e) return;
       e.windup=0; e.charging=0; e.hitsLeft=0; e.frozenT=1.7; e.atkT=Math.max(e.atkT||0,1.9);  // freeze: cancel its attack
       const dmg=Math.round(G.atk*1.2); e.hp-=dmg;
@@ -1458,7 +1470,7 @@ const POWERS = {
       ui.ehp.style.width = clamp(e.hp/e.max*100,0,100)+'%';
       if(e.hp<=0) killEnemy();
     } },
-  wraithstep: { id:'wraithstep', name:'Wraithstep', icon:'✦', cd:6,
+  wraithstep: { id:'wraithstep', name:'Wraithstep', icon:'spark', cd:6,
     use(){ // astral blink: long i-frames + reposition + a counter-strike from nowhere
       G.iframes=Math.max(G.iframes,0.8); G.dodgeX=(chance(.5)?-1:1)*1.6; G.perfCd=0.5; G.slowmo=0.4;
       audio('dodge'); burst(G.x,1.0,G.z,{color:0xc070ff,n:22,spd:4,life:.5,up:true,grav:4});
@@ -1466,7 +1478,7 @@ const POWERS = {
         const sx=g?g.position.x:G.x, sz=g?g.position.z:G.z-2.6; burst(sx,1.3,sz,{color:0xd8b0ff,n:16,spd:5,life:.5});
         floatDmg(dmg,{cls:'crit',text:'✦'+dmg,color:'#d8b0ff'}); ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
         if(e.hp<=0) killEnemy(); } } },
-  blooddraught: { id:'blooddraught', name:'Blooddraught', icon:'🩸', cd:8,
+  blooddraught: { id:'blooddraught', name:'Blooddraught', icon:'drop', cd:8,
     use(){ // turn the grove's hunger back on it: drain the foe, drink the wound shut
       const e=G.enemy, g=G.eGrp; if(!e) return;
       const dmg=Math.round(G.atk*1.35); e.hp-=dmg;
@@ -1479,7 +1491,7 @@ const POWERS = {
       ui.ehp.style.width=clamp(e.hp/e.max*100,0,100)+'%';
       if(e.hp<=0) killEnemy();
     } },
-  kingsgild: { id:'kingsgild', name:"King's Gild", icon:'◈', cd:9,
+  kingsgild: { id:'kingsgild', name:"King's Gild", icon:'coin', cd:9,
     use(){ // greed forged into a blade: spend gold to gild a devastating judgment
       const e=G.enemy, g=G.eGrp; if(!e) return;
       const spend=Math.min(G.gold,40); G.gold-=spend;   // gold display refreshes on the next HUD frame
@@ -1507,7 +1519,7 @@ function renderPotionTray(){
   ui.potionTray.innerHTML='';
   G.potions.forEach((p,i)=>{
     const el=document.createElement('div'); el.className='ptn';
-    el.innerHTML=`<span class="pi">${p.icon}</span><span><div class="pn">${p.name}</div><div class="pd">${p.desc}</div></span>`;
+    el.innerHTML=`<span class="pi">${uiIcon(p.icon,22)}</span><span><div class="pn">${p.name}</div><div class="pd">${p.desc}</div></span>`;
     el.addEventListener('pointerdown',ev=>{ ev.preventDefault(); usePotion(i); });
     ui.potionTray.appendChild(el);
   });
@@ -1547,7 +1559,7 @@ function spawnEnemy(kind='normal'){
   const tier = 1 + (G.act-1)*0.5 + G.depth/320;
   const hp = Math.round((boss?150:26)*t.hpM*(elite?2.3:1)*(boss?(1+G.act*0.18):1)*tier);
   G.eGrp=g; G.bossFight=boss;
-  G.enemy={ type:t, name:(boss?'☠ ':elite?'Elite ':'')+t.name, tag:boss?'ACT BOSS · slay it':t.tag, hp, max:hp,
+  G.enemy={ type:t, name:(elite?'Elite ':'')+t.name, tag:boss?'ACT BOSS · slay it':t.tag, hp, max:hp,
     dmg:Math.round((boss?13:8)*t.dmgM*(elite?1.5:1)*tier), elite, boss, armored:!!t.armored, sc:baseSc,
     behavior:t.behavior, tel:t.tel, hits:t.hits||1, gap:t.gap||0.2, recovery:t.recovery||0,
     standZ:t.standZ||2.6, glow:b.accent, windup:0, recT:0, atkT:rand(1.0,2.0), hitsLeft:0, hitGapT:0,
@@ -1778,7 +1790,7 @@ const BEHAVIOR = {
 function presentCard(it){
   const c=$('card'); c.style.borderColor=it.rar.col; c.style.boxShadow=`0 0 28px rgba(0,0,0,.7),0 0 30px ${it.rar.col}55`;
   $('cardrar').textContent=it.rar.name; $('cardrar').style.color=it.rar.col;
-  $('cardicon').textContent=it.icon;
+  $('cardicon').innerHTML=itemIconHTML(it,46);
   $('cardname').textContent=it.name; $('cardname').style.color=it.rar.col;
   const rows=[]; let cmp='';
   if(it.slot==='weapon'){
@@ -1816,12 +1828,12 @@ bindBtn($('equipBtn'),doEquip); bindBtn($('sellBtn'),doSell);
 
 // ============================================================ the crossroads (rarer forks)
 const NODE={
-  fight:{icon:'⚔',name:'The Low Road',desc:'A lone horror waits on the path.',tag:'Fight'},
-  elite:{icon:'☠',name:'The Barrow',desc:'Something far stronger guards richer spoils.',tag:'Elite · loot+'},
-  merchant:{icon:'🪙',name:'Wandering Merchant',desc:'A hooded trader, far from any town.',tag:'Spend gold'},
-  shrine:{icon:'🔥',name:'Forgotten Shrine',desc:'Old power, bought with sacrifice.',tag:'Risk / reward'},
-  rest:{icon:'⛲',name:'Still Waters',desc:'A quiet place to bind your wounds.',tag:'Heal 35%'},
-  treasure:{icon:'⚱',name:'Old Cache',desc:'Someone hid something here, long ago.',tag:'Loot'},
+  fight:{icon:'sword',name:'The Low Road',desc:'A lone horror waits on the path.',tag:'Fight'},
+  elite:{icon:'skull',name:'The Barrow',desc:'Something far stronger guards richer spoils.',tag:'Elite · loot+'},
+  merchant:{icon:'coin',name:'Wandering Merchant',desc:'A hooded trader, far from any town.',tag:'Spend gold'},
+  shrine:{icon:'flame',name:'Forgotten Shrine',desc:'Old power, bought with sacrifice.',tag:'Risk / reward'},
+  rest:{icon:'fountain',name:'Still Waters',desc:'A quiet place to bind your wounds.',tag:'Heal 35%'},
+  treasure:{icon:'urn',name:'Old Cache',desc:'Someone hid something here, long ago.',tag:'Loot'},
 };
 function arriveAtNode(){
   if(G.firstNode){ G.firstNode=false; G.actNodes=1; G.lastWasFork=false; startFight('normal'); return; }
@@ -1836,7 +1848,7 @@ function openFork(){
   const keys = shuffle([combat, rest[0], rest[1]]);
   const wrap=$('forkChoices'); wrap.innerHTML='';
   keys.forEach(k=>{ const n=NODE[k]; const el=document.createElement('button'); el.className='forkchoice';
-    el.innerHTML=`<span class="fc-ico">${n.icon}</span><span class="fc-txt"><span class="fc-name">${n.name}</span><span class="fc-desc">${n.desc}</span></span><span class="fc-tag">${n.tag}</span>`;
+    el.innerHTML=`<span class="fc-ico">${uiIcon(n.icon,26)}</span><span class="fc-txt"><span class="fc-name">${n.name}</span><span class="fc-desc">${n.desc}</span></span><span class="fc-tag">${n.tag}</span>`;
     el.addEventListener('pointerdown',e=>{e.preventDefault(); chooseNode(k);}); wrap.appendChild(el); });
   G.state='fork'; show('forkOv');
 }
@@ -1856,16 +1868,16 @@ function resumeTravel(){ G.state='travel'; G.nodeAt=G.depth+rand(7,11); refreshH
 function openShop(){
   G.state='shop'; $('shopGold').textContent='◈'+G.gold; const a=G.act;
   const pool=[
-    {icon:'❤',name:'Field Bandage',desc:'Restore 40% health',price:Math.round(20+a*8),fn:()=>{G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.4);}},
-    {icon:'⚔',name:'Whetstone',desc:'+3 Attack, lasting',price:Math.round(42+a*14),fn:()=>{G.permAtk+=3;recalc();}},
-    {icon:'🛡',name:'Iron Charm',desc:'+20 Max Health',price:Math.round(38+a*12),fn:()=>{G.permHp+=20;recalc();G.hp+=20;}},
-    {icon:'🧪',name:'Spare Potion',desc:'A random potion',price:Math.round(30+a*9),fn:()=>{ if(G.potions.length<POTION_CAP) G.potions.push(pick(POTIONS)); }},
+    {icon:'heart',name:'Field Bandage',desc:'Restore 40% health',price:Math.round(20+a*8),fn:()=>{G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.4);}},
+    {icon:'sword',name:'Whetstone',desc:'+3 Attack, lasting',price:Math.round(42+a*14),fn:()=>{G.permAtk+=3;recalc();}},
+    {icon:'shield',name:'Iron Charm',desc:'+20 Max Health',price:Math.round(38+a*12),fn:()=>{G.permHp+=20;recalc();G.hp+=20;}},
+    {icon:'flask',name:'Spare Potion',desc:'A random potion',price:Math.round(30+a*9),fn:()=>{ if(G.potions.length<POTION_CAP) G.potions.push(pick(POTIONS)); }},
   ];
   const offers=shuffle(pool).slice(0,3);
   const wrap=$('shopItems'); wrap.innerHTML='';
   offers.forEach(o=>{
     const div=document.createElement('div'); div.className='shopitem';
-    div.innerHTML=`<div class="si-ico">${o.icon}</div><div class="si-mid"><div class="si-name">${o.name}</div><div class="si-desc">${o.desc}</div></div><button class="si-buy">◈${o.price}</button>`;
+    div.innerHTML=`<div class="si-ico">${uiIcon(o.icon,26)}</div><div class="si-mid"><div class="si-name">${o.name}</div><div class="si-desc">${o.desc}</div></div><button class="si-buy">◈${o.price}</button>`;
     const btn=div.querySelector('.si-buy');
     btn.addEventListener('pointerdown',e=>{ e.preventDefault(); if(btn.disabled) return;
       if(G.gold>=o.price){ G.gold-=o.price; o.fn(); flashLog('Bought '+o.name); btn.textContent='✓ Sold'; btn.disabled=true; btn.classList.add('sold'); $('shopGold').textContent='◈'+G.gold; refreshHUD(); }
@@ -1879,7 +1891,7 @@ bindBtn($('xShop'), ()=>{ hide('shopOv'); resumeTravel(); });
 
 // ---- event card (shrine / rest / cache) ----
 function showEvent(icon,title,bodyHTML,btns){
-  $('evIcon').textContent=icon; $('evTitle').textContent=title; $('evBody').innerHTML=bodyHTML;
+  $('evIcon').innerHTML=hasIcon(icon)?uiIcon(icon,44):icon; $('evTitle').textContent=title; $('evBody').innerHTML=bodyHTML;
   const wrap=$('evBtns'); wrap.innerHTML='';
   btns.forEach((b,i)=>{ const el=document.createElement('button'); el.className='lootbtn '+(i===0?'primary':'ghost'); el.textContent=b.label;
     el.addEventListener('pointerdown',e=>{e.preventDefault(); b.fn();}); wrap.appendChild(el); });
@@ -1896,14 +1908,14 @@ const SHRINES=[
 // (distinct from the guardians' signature active POWERS). Stored as ids in G.passives,
 // folded into stats by applyPassives()->passBonus->recalc, and saved with the journey. ----
 const LESSER_AWAKENINGS=[
-  {id:'keeneye',   name:'Keen Eye',     icon:'🎯', stat:{crit:6},      desc:'+6% critical chance'},
-  {id:'ironskin',  name:'Ironskin',     icon:'🛡', stat:{def:3},       desc:'+3 defense'},
-  {id:'wolfblood', name:"Wolf's Blood", icon:'🩸', stat:{lifesteal:4}, desc:'+4% lifesteal'},
-  {id:'emberheart',name:'Emberheart',   icon:'⚔', stat:{atk:4},       desc:'+4 attack'},
-  {id:'slowmend',  name:'Slow Mending', icon:'✚', stat:{regen:2},      desc:'+2 health regen'},
-  {id:'fleetfoot', name:'Fleetfoot',    icon:'💨', stat:{speed:10},    desc:'+10% speed'},
-  {id:'deepwell',  name:'Deep Well',    icon:'❤', stat:{hp:30},        desc:'+30 max health'},
-  {id:'witchmark', name:'Witch-Mark',   icon:'✦', stat:{spell:6},      desc:'+6 spell power'},
+  {id:'keeneye',   name:'Keen Eye',     icon:'target', stat:{crit:6},      desc:'+6% critical chance'},
+  {id:'ironskin',  name:'Ironskin',     icon:'shield', stat:{def:3},       desc:'+3 defense'},
+  {id:'wolfblood', name:"Wolf's Blood", icon:'drop', stat:{lifesteal:4}, desc:'+4% lifesteal'},
+  {id:'emberheart',name:'Emberheart',   icon:'sword', stat:{atk:4},       desc:'+4 attack'},
+  {id:'slowmend',  name:'Slow Mending', icon:'plus', stat:{regen:2},      desc:'+2 health regen'},
+  {id:'fleetfoot', name:'Fleetfoot',    icon:'boot', stat:{speed:10},    desc:'+10% speed'},
+  {id:'deepwell',  name:'Deep Well',    icon:'heart', stat:{hp:30},        desc:'+30 max health'},
+  {id:'witchmark', name:'Witch-Mark',   icon:'spark', stat:{spell:6},      desc:'+6 spell power'},
 ];
 function applyPassives(){
   const pb=G.passBonus; for(const k in pb) pb[k]=0;
@@ -1914,47 +1926,47 @@ function applyPassives(){
 function grantPassive(id){ if(!G.passives.includes(id)) G.passives.push(id); applyPassives(); }
 function openLesserAwakening(avail){
   const two=shuffle(avail.slice()).slice(0,2);
-  const btns=two.map(p=>({label:`${p.icon} ${p.name}`, fn:()=>{
+  const btns=two.map(p=>({label:p.name, fn:()=>{
     const pm=G.maxHp; grantPassive(p.id); if(G.maxHp>pm) G.hp+=(G.maxHp-pm); G.hp=Math.min(G.hp,G.maxHp);
     flashLog('A lesser power wakes — '+p.name); audio('reveal'); refreshHUD(); persistJourney(); closeEvent(); }}));
   btns.push({label:'Leave it be', fn:()=>closeEvent()});
-  showEvent('🔥','Forgotten Shrine',
+  showEvent('flame','Forgotten Shrine',
     `The cold stone stirs something already half-woken in you. Take what rises:<br><br>`+
-    two.map(p=>`<span class="ev-gain">${p.icon} ${p.name}</span> — ${p.desc}`).join('<br>'), btns);
+    two.map(p=>`<span class="ev-gain">${uiIcon(p.icon,16)} ${p.name}</span> — ${p.desc}`).join('<br>'), btns);
 }
 function openShrine(){
   // the road sometimes wakes a lesser power in you; otherwise an old bargain
   const avail=LESSER_AWAKENINGS.filter(p=>!G.passives.includes(p.id));
   if(avail.length>=2 && chance(0.55)){ openLesserAwakening(avail); return; }
   const s=pick(SHRINES);
-  showEvent('🔥', s.title, `${s.body}<br><br><span class="ev-gain">${s.gain}</span> &nbsp;·&nbsp; <span class="ev-cost">${s.cost}</span>`, [
+  showEvent('flame', s.title, `${s.body}<br><br><span class="ev-gain">${s.gain}</span> &nbsp;·&nbsp; <span class="ev-cost">${s.cost}</span>`, [
     {label:'Accept the bargain', fn:()=>{ const pm=G.maxHp; s.fn(); recalc(); if(G.maxHp>pm)G.hp+=(G.maxHp-pm); G.hp=Math.min(G.hp,G.maxHp); refreshHUD(); closeEvent(); }},
     {label:'Leave it be', fn:()=>closeEvent()},
   ]);
 }
 function doRest(){
   const before=Math.round(G.hp); G.hp=Math.min(G.maxHp,G.hp+G.maxHp*0.35); const gained=Math.round(G.hp)-before;
-  showEvent('⛲','Still Waters', `You kneel and drink. The cold water steadies your hands.<br><br><span class="ev-gain">+${gained} Health</span>`, [{label:'Move on', fn:()=>closeEvent()}]);
+  showEvent('fountain','Still Waters', `You kneel and drink. The cold water steadies your hands.<br><br><span class="ev-gain">+${gained} Health</span>`, [{label:'Move on', fn:()=>closeEvent()}]);
 }
 function openTreasure(){
   if(chance(.5)){ const g=Math.round(rand(30,80)*(1+G.act*0.4)); G.gold+=g; refreshHUD();
-    showEvent('⚱','Old Cache', `Buried coin, forgotten by whoever last walked here.<br><br><span class="ev-gain">+◈${g}</span>`, [{label:'Take it', fn:()=>closeEvent()}]);
+    showEvent('urn','Old Cache', `Buried coin, forgotten by whoever last walked here.<br><br><span class="ev-gain">+◈${g}</span>`, [{label:'Take it', fn:()=>closeEvent()}]);
   } else { G.lootBoost=0; openLoot(); }
 }
 
 // ============================================================ TOWN HUB
 const NPCS=[
-  {id:'smith', name:'Borin', role:'Blacksmith', icon:'🛡️', color:0x46464e, x:-5, shop:'armor',
+  {id:'smith', name:'Borin', role:'Blacksmith', icon:'anvil', color:0x46464e, x:-5, shop:'armor',
    lines:['Steel won’t break the curse. But it’ll keep you whole long enough to try.','The dead kings wore the finest plate in the realm. Look how that ended.','Every dent on this anvil is a pilgrim who walked out. Few walked back.']},
-  {id:'jewel', name:'Ysolde', role:'Jeweler', icon:'💍', color:0x6a2f7a, x:-3, shop:'trinket',
+  {id:'jewel', name:'Ysolde', role:'Jeweler', icon:'ring', color:0x6a2f7a, x:-3, shop:'trinket',
    lines:['These relics still hum with the curse. Wear them, and a little of it wears you.','Old magic clings to old bones. I only sell what I dare to touch.','They say the King’s charge is changing you. Charms like these… they listen to that.']},
-  {id:'alch', name:'Old Maeve', role:'Alchemist', icon:'⚗️', color:0x2e5a3a, x:-1, shop:'potion',
+  {id:'alch', name:'Old Maeve', role:'Alchemist', icon:'flask', color:0x2e5a3a, x:-1, shop:'potion',
    lines:['Drink mid-fight, not after. After is for the dead, and they don’t drink.','The road’s dead don’t bleed. You still do. Carry a draught.','I’ve buried more pilgrims than I’ve healed. Don’t be a tally mark.']},
-  {id:'arms', name:'Garrick', role:'Arms Dealer', icon:'⚔️', color:0x5a4632, x:1.0, shop:'weapon',
+  {id:'arms', name:'Garrick', role:'Arms Dealer', icon:'sword', color:0x5a4632, x:1.0, shop:'weapon',
    lines:['Blades for the body. Grimoires for whatever the curse left of your soul.','When the power in you wakes, you’ll want steel worthy of it.','They all kill the dead the same — slowly, and never for good.']},
-  {id:'inn', name:'Hale', role:'Innkeeper', icon:'🍺', color:0x8a5a24, x:3, rest:true,
+  {id:'inn', name:'Hale', role:'Innkeeper', icon:'tankard', color:0x8a5a24, x:3, rest:true,
    lines:['Rest while the fire holds. It’s the last one before the dark.','You wear the King’s charge like a stone round your neck. Sit. Set it down a while.','I keep a bed for every pilgrim. Most I only make up once.']},
-  {id:'herald', name:'The Grey Herald', role:'Curse-Touched · King’s Witness', icon:'📜', color:0x3a3a4a, x:5, lore:true,
+  {id:'herald', name:'The Grey Herald', role:'Curse-Touched · King’s Witness', icon:'scroll', color:0x3a3a4a, x:5, lore:true,
    lines:['I died on this road, pilgrim — as you will. The curse keeps me lucid, to carry the King’s words and witness who answers them.']},
 ];
 function buildNpcRow(){ for(const f of NPC_FIG) townGroup.remove(f); NPC_FIG.length=0; } // shopkeepers now live inside their 3D shops
@@ -1971,7 +1983,7 @@ function enterTown(){
   $('townGold').textContent = G.gold;
   const row=$('npcRow'); row.innerHTML='';
   NPCS.forEach(npc=>{ const el=document.createElement('button'); el.className='npcbtn';
-    el.innerHTML=`<span class="ni">${npc.icon}</span><span class="nm">${npc.name}</span><span class="nr">${npc.role}</span>`;
+    el.innerHTML=`<span class="ni">${uiIcon(npc.icon,30)}</span><span class="nm">${npc.name}</span><span class="nr">${npc.role}</span>`;
     el.addEventListener('pointerdown',e=>{e.preventDefault(); if(npc.shop) enterShop(npc); else talkNPC(npc);}); row.appendChild(el); });
   $('townSettings').classList.add('hidden');   // graphics options stay tucked away until asked for
   buildPerfRow($('townPerf')); buildBrightRow($('townBright'));
@@ -1987,7 +1999,7 @@ function openSoulShrine(){
   SOUL_UPG.forEach(u=>{
     const lvl=META.upg[u.key]||0; const maxed=lvl>=u.max; const price=u.cost(lvl);
     const div=document.createElement('div'); div.className='shopitem';
-    div.innerHTML=`<div class="si-ico">${u.icon}</div><div class="si-mid"><div class="si-name">${u.name} <span style="color:#9c8f6a;font-size:11px;">Lv ${lvl}/${u.max}</span></div><div class="si-desc">${u.desc}</div></div><button class="si-buy">${maxed?'MAX':'⟡'+price}</button>`;
+    div.innerHTML=`<div class="si-ico">${uiIcon(u.icon,26)}</div><div class="si-mid"><div class="si-name">${u.name} <span style="color:#9c8f6a;font-size:11px;">Lv ${lvl}/${u.max}</span></div><div class="si-desc">${u.desc}</div></div><button class="si-buy">${maxed?'MAX':'⟡'+price}</button>`;
     const btn=div.querySelector('.si-buy');
     if(maxed){ btn.disabled=true; btn.classList.add('sold'); }
     else btn.addEventListener('pointerdown',e=>{ e.preventDefault();
@@ -2013,15 +2025,15 @@ function roadMusic(){
 }
 // ---- Jukebox: audition every music track on demand (from title or town) ----
 const JUKE_TRACKS=[
-  {icon:'✦', name:'Kingsreach (Menu)', desc:'Calm title theme — hopeful but grim',            start:startMenuMusic},
-  {icon:'🏚', name:'Waystation',        desc:'Hearth & rest — the town theme, with oomph',     start:startTownMusic},
-  {icon:'⚔', name:'The Road',          desc:'Driving battle banger (default combat)',         start:startBattleMusic},
-  {icon:'☠', name:'The Guardian',      desc:'Heavy, badass act-boss theme',                   start:startBossMusic},
-  {icon:'🕯', name:"Pilgrim's Lament",   desc:'Slow, melodic & melancholy (now layered)',       start:startLamentMusic},
-  {icon:'🌲', name:'Forest Hunt',       desc:'Woodland prowl — forest & grove biomes',         start:startForestMusic},
-  {icon:'🔔', name:'Gilded Dawn',       desc:'Bright, bouncy & quirky — the Gilded Sanctum',    start:startMorningMusic},
-  {icon:'🔥', name:'Ember March',       desc:'Molten, pounding march — Emberdeep',              start:startEmberMusic},
-  {icon:'🌌', name:'Astral Drift',      desc:'Eerie cosmic drift — the Astral Verge',          start:startAstralMusic},
+  {icon:'spark', name:'Kingsreach (Menu)', desc:'Calm title theme — hopeful but grim',            start:startMenuMusic},
+  {icon:'tankard', name:'Waystation',        desc:'Hearth & rest — the town theme, with oomph',     start:startTownMusic},
+  {icon:'sword', name:'The Road',          desc:'Driving battle banger (default combat)',         start:startBattleMusic},
+  {icon:'skull', name:'The Guardian',      desc:'Heavy, badass act-boss theme',                   start:startBossMusic},
+  {icon:'candle', name:"Pilgrim's Lament",   desc:'Slow, melodic & melancholy (now layered)',       start:startLamentMusic},
+  {icon:'tree', name:'Forest Hunt',       desc:'Woodland prowl — forest & grove biomes',         start:startForestMusic},
+  {icon:'bell', name:'Gilded Dawn',       desc:'Bright, bouncy & quirky — the Gilded Sanctum',    start:startMorningMusic},
+  {icon:'flame', name:'Ember March',       desc:'Molten, pounding march — Emberdeep',              start:startEmberMusic},
+  {icon:'rune', name:'Astral Drift',      desc:'Eerie cosmic drift — the Astral Verge',          start:startAstralMusic},
 ];
 let _jukeFrom='titleOv';
 function openJukebox(from){
@@ -2032,7 +2044,7 @@ function openJukebox(from){
   const wrap=$('jukeItems'); wrap.innerHTML='';
   JUKE_TRACKS.forEach(tr=>{
     const div=document.createElement('div'); div.className='shopitem';
-    div.innerHTML=`<div class="si-ico">${tr.icon}</div><div class="si-mid"><div class="si-name">${tr.name}</div><div class="si-desc">${tr.desc}</div></div><button class="si-buy">▶</button>`;
+    div.innerHTML=`<div class="si-ico">${uiIcon(tr.icon,26)}</div><div class="si-mid"><div class="si-name">${tr.name}</div><div class="si-desc">${tr.desc}</div></div><button class="si-buy">▶</button>`;
     div.querySelector('.si-buy').addEventListener('pointerdown',e=>{ e.preventDefault();
       playJukeTrack(tr); wrap.querySelectorAll('.shopitem').forEach(x=>x.classList.remove('playing')); div.classList.add('playing'); });
     wrap.appendChild(div);
@@ -2050,20 +2062,20 @@ bindBtn($('leaveJukeBtn'), closeJukebox);
 bindBtn($('xJuke'), closeJukebox);
 function openGear(){
   G.state='shop'; hide('townOv');
-  const parts=[`⚔ ${G.atk}`,`🛡 ${G.def}`,`❤ ${G.maxHp}`];
-  if(G.crit) parts.push(`✦ ${G.crit}% crit`);
-  if(G.lifesteal) parts.push(`🩸 ${G.lifesteal}% LS`);
-  if(G.regen) parts.push(`✚ ${G.regen}/s`);
-  if(G.spellPow) parts.push(`🔮 ${G.spellPow} spell`);
+  const parts=[`${uiIcon('sword',14)} ${G.atk}`,`${uiIcon('shield',14)} ${G.def}`,`${uiIcon('heart',14)} ${G.maxHp}`];
+  if(G.crit) parts.push(`${uiIcon('spark',14)} ${G.crit}% crit`);
+  if(G.lifesteal) parts.push(`${uiIcon('drop',14)} ${G.lifesteal}% LS`);
+  if(G.regen) parts.push(`${uiIcon('plus',14)} ${G.regen}/s`);
+  if(G.spellPow) parts.push(`${uiIcon('gem',14)} ${G.spellPow} spell`);
   $('gearStats').innerHTML = parts.join('  ·  ');
   const order=[['weapon','Weapon'],['helmet','Helm'],['armor','Chestplate'],['under','Gambeson'],['gloves','Gauntlets'],['trinket','Trinket'],['talisman','Talisman']];
   const wrap=$('gearList'); wrap.innerHTML='';
-  for(const [k,lbl] of order){ const it=G.equip[k]; let icon,name,desc,col;
-    if(k==='weapon'){ const wd=WEAPON_DEF[it.wtype]; icon=wd.icon; name=it.name||wd.cls; col=it.rar?it.rar.col:'#cdbf9a'; desc=`${wd.cls} · ⚔${Math.round((wd.atk[0]+wd.atk[1])/2)+(it.atk||0)}${wd.spell?' · casts '+(wd.spell==='bolt'?'arc bolt':wd.spell==='missile'?'missiles':'nova'):''}`; }
-    else if(it){ icon=SLOTS[k].icon; name=it.name; col=it.rar.col; desc=statShort(it); }
-    else { icon=SLOTS[k].icon; name='— empty —'; col='#6a6452'; desc=lbl+' slot'; }
+  for(const [k,lbl] of order){ const it=G.equip[k]; let iconHTML,name,desc,col;
+    if(k==='weapon'){ const wd=WEAPON_DEF[it.wtype]; iconHTML=itemIconHTML(it,28); name=it.name||wd.cls; col=it.rar?it.rar.col:'#cdbf9a'; desc=`${wd.cls} · ${uiIcon('sword',11)}${Math.round((wd.atk[0]+wd.atk[1])/2)+(it.atk||0)}${wd.spell?' · casts '+(wd.spell==='bolt'?'arc bolt':wd.spell==='missile'?'missiles':'nova'):''}`; }
+    else if(it){ iconHTML=itemIconHTML(it,28); name=it.name; col=it.rar.col; desc=statShort(it); }
+    else { iconHTML=uiIcon(SLOT_ICON[k],28); name='— empty —'; col='#6a6452'; desc=lbl+' slot'; }
     const div=document.createElement('div'); div.className='shopitem';
-    div.innerHTML=`<div class="si-ico">${icon}</div><div class="si-mid"><div class="si-name" style="color:${col}">${name}</div><div class="si-desc">${desc}</div></div><div style="font-size:9px;color:#8c8270;letter-spacing:1px;text-align:right;">${lbl.toUpperCase()}</div>`;
+    div.innerHTML=`<div class="si-ico">${iconHTML}</div><div class="si-mid"><div class="si-name" style="color:${col}">${name}</div><div class="si-desc">${desc}</div></div><div style="font-size:9px;color:#8c8270;letter-spacing:1px;text-align:right;">${lbl.toUpperCase()}</div>`;
     wrap.appendChild(div);
   }
   // awakenings the road has woken in you: signature powers + lesser passives
@@ -2071,8 +2083,8 @@ function openGear(){
   const lessers=G.passives.map(id=>LESSER_AWAKENINGS.find(x=>x.id===id)).filter(Boolean);
   if(powers.length||lessers.length){
     const aw=document.createElement('div'); aw.className='shopitem'; aw.style.flexWrap='wrap';
-    const tags=[...powers.map(p=>`<span style="color:#c9a8ff">${p.icon} ${p.name}</span>`),
-                ...lessers.map(p=>`<span style="color:#9fd0a0">${p.icon} ${p.desc}</span>`)].join('&nbsp; · &nbsp;');
+    const tags=[...powers.map(p=>`<span style="color:#c9a8ff">${uiIcon(p.icon,15)} ${p.name}</span>`),
+                ...lessers.map(p=>`<span style="color:#9fd0a0">${uiIcon(p.icon,15)} ${p.desc}</span>`)].join('&nbsp; · &nbsp;');
     aw.innerHTML=`<div class="si-mid"><div class="si-name" style="color:#c9a8ff">Awakenings</div><div class="si-desc">${tags}</div></div>`;
     wrap.appendChild(aw);
   }
@@ -2084,7 +2096,7 @@ bindBtn($('leaveGearBtn'), leaveGear);
 bindBtn($('xGear'), leaveGear);
 function talkNPC(npc){
   G.townNPC=npc; hide('townOv');
-  $('dlgPortrait').textContent=npc.icon; $('dlgName').textContent=npc.name; $('dlgRole').textContent=npc.role;
+  $('dlgPortrait').innerHTML=uiIcon(npc.icon,38); $('dlgName').textContent=npc.name; $('dlgRole').textContent=npc.role;
   const line = npc.lore ? ('They say of the road ahead: “'+nextBiome().rumor+'”') : pick(npc.lines);
   $('dlgText').textContent = '“'+line+'”';
   const btns=[];
@@ -2126,7 +2138,7 @@ function openShopCatalog(type){
     for(const wt of Object.keys(WEAPON_DEF)){ const r=rollRarity(G.act*100); const wd=WEAPON_DEF[wt];
       const it=makeWeaponItem(wt,r.key,{atk:Math.round(rand(2,6)*r.mult*scale)}); it.cls=wd.cls;
       const price=Math.round(it.value*1.7);
-      const desc=`${wd.cls} · ⚔${Math.round((wd.atk[0]+wd.atk[1])/2)+it.atk}${wd.spell?' · casts '+(wd.spell==='bolt'?'arc bolt':wd.spell==='missile'?'missiles':'nova'):''}`;
+      const desc=`${wd.cls} · ${uiIcon('sword',11)}${Math.round((wd.atk[0]+wd.atk[1])/2)+it.atk}${wd.spell?' · casts '+(wd.spell==='bolt'?'arc bolt':wd.spell==='missile'?'missiles':'nova'):''}`;
       offers.push({item:it, price, icon:wd.icon, name:it.name, desc, rarCol:it.rar.col, held: wt===G.weaponType}); } }
   else { const scale=1+G.act*0.4; const sl_pool = type==='armor'?['armor','helmet','gloves','under']:['trinket','talisman'];
     for(let i=0;i<5;i++){ const r=rollRarity(G.act*120); const it=makeGear(pick(sl_pool),r,scale);
@@ -2134,7 +2146,7 @@ function openShopCatalog(type){
       offers.push({item:it, price, icon:it.icon, name:it.name, desc:`${SLOTS[it.slot].label} · ${statShort(it)}${cur?' · ▸ '+cur.name:''}`, rarCol:it.rar.col}); } }
   offers.forEach(o=>{
     const div=document.createElement('div'); div.className='shopitem'; if(o.held) div.style.borderColor='#6cf09a';
-    div.innerHTML=`<div class="si-ico">${o.icon}</div><div class="si-mid"><div class="si-name" ${o.rarCol?`style="color:${o.rarCol}"`:''}>${o.name}${o.held?' <span style="color:#6cf09a;font-size:10px;letter-spacing:1px;">● HELD</span>':''}</div><div class="si-desc">${o.desc}</div></div><button class="si-buy">◈${o.price}</button>`;
+    div.innerHTML=`<div class="si-ico">${o.pot?uiIcon(o.pot.icon,28):itemIconHTML(o.item,30)}</div><div class="si-mid"><div class="si-name" ${o.rarCol?`style="color:${o.rarCol}"`:''}>${o.name}${o.held?' <span style="color:#6cf09a;font-size:10px;letter-spacing:1px;">● HELD</span>':''}</div><div class="si-desc">${o.desc}</div></div><button class="si-buy">◈${o.price}</button>`;
     const btn=div.querySelector('.si-buy');
     btn.addEventListener('pointerdown',e=>{ e.preventDefault(); if(btn.disabled) return;
       if(G.gold<o.price){ btn.classList.add('nope'); setTimeout(()=>btn.classList.remove('nope'),300); return; }
@@ -2152,6 +2164,8 @@ bindBtn($('xCatalog'), leaveShop);
 // tap the dimmed area above a bottom-sheet to dismiss it (only sheets that have a ✕ close)
 document.querySelectorAll('.overlay.sheet').forEach(ov=>{ const x=ov.querySelector('.ovx'); if(!x) return;
   ov.addEventListener('pointerdown', e=>{ if(e.target===ov){ e.preventDefault(); x.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true})); } }); });
+// inject hand-coded pixel icons into any [data-icon] element (replaces static emoji in buttons)
+document.querySelectorAll('[data-icon]').forEach(el=>{ el.insertAdjacentHTML('afterbegin', uiIcon(el.dataset.icon, 18)); });
 
 // ============================================================ biome-reveal cutscene
 const REVEAL_DUR=3.4;
@@ -2236,7 +2250,7 @@ function die(){
   META.souls+=earned; META.totalKills+=dk; G._awardKills=G.kills; G._awardDepth=G.depth;
   if(G.act>META.best.act) META.best.act=G.act; if(Math.floor(G.depth)>META.best.depth) META.best.depth=Math.floor(G.depth);
   saveMeta();
-  $('deathStats').innerHTML = `The road will not keep you. You wake at the waystation, your wounds knit by the curse you came to break.<br><br>You hold <b>Act ${G.act}</b> · <b>⚔ ${G.kills}</b> laid to rest · <b>◈${G.gold}</b><br>Souls gathered <b class="ev-gain">⟡ ${earned}</b> &nbsp;·&nbsp; reliquary <b>⟡ ${META.souls}</b>`;
+  $('deathStats').innerHTML = `The road will not keep you. You wake at the waystation, your wounds knit by the curse you came to break.<br><br>You hold <b>Act ${G.act}</b> · <b>${uiIcon('sword',15)} ${G.kills}</b> laid to rest · <b>◈${G.gold}</b><br>Souls gathered <b class="ev-gain">⟡ ${earned}</b> &nbsp;·&nbsp; reliquary <b>⟡ ${META.souls}</b>`;
   show('deathOv'); audio('die');
 }
 // No permadeath: rising from a fall returns you to the waystation with your gear,
@@ -2389,7 +2403,7 @@ function update(dt){
   if(G.state==='combat' && G.enemy && !G.enemy.dead){ updateEnemy(dt); updateProjectiles(dt); }
   if(G.hp<=0 && G.state!=='dead') die();
   if(ui.power){ const pw=(G.state==='combat')&&activePower(); ui.power.classList.toggle('show', !!pw);
-    if(pw){ ui.power.querySelector('.ico').textContent=pw.icon; ui.power.style.opacity = G.powerCd>0?0.4:1; } }
+    if(pw){ ui.power.querySelector('.ico').innerHTML=uiIcon(pw.icon,18); ui.power.style.opacity = G.powerCd>0?0.4:1; } }
   if(playing) refreshHUD();
 }
 // Slash sweeps counter-clockwise (same direction as the slashArc FX) so the BLADE arcs across
