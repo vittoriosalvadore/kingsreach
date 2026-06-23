@@ -125,6 +125,21 @@
     text-align:center;padding:30px;gap:14px;background:radial-gradient(120% 90% at 50% 40%,rgba(8,6,12,.55),rgba(0,0,0,.92));
     -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);pointer-events:auto;}
   .overlay.hidden{display:none;}
+  /* ===== bottom-sheet menus: contained, scrollable panels that keep the 3D scene visible ===== */
+  .overlay.sheet{justify-content:flex-end;align-items:center;padding:0;gap:0;
+    background:linear-gradient(rgba(0,0,0,0) 36%,rgba(4,3,8,.5) 86%);
+    -webkit-backdrop-filter:none;backdrop-filter:none;}
+  .sheet-panel{position:relative;width:100%;max-width:480px;max-height:74vh;display:flex;flex-direction:column;
+    text-align:center;background:linear-gradient(180deg,rgba(20,16,10,.975),rgba(10,9,7,.985));
+    border-top:1px solid #4a4030;border-radius:16px 16px 0 0;box-shadow:0 -10px 34px rgba(0,0,0,.6);
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);}
+  .sheet-grab{flex:0 0 auto;width:38px;height:4px;border-radius:3px;background:#4a4334;margin:8px auto 2px;}
+  .sheet-head{flex:0 0 auto;position:relative;padding:4px 44px 8px;display:flex;flex-direction:column;gap:3px;}
+  .sheet-head .title{font-size:21px;margin:0;}
+  .sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;
+    display:flex;flex-direction:column;gap:9px;align-items:stretch;padding:6px 16px;width:auto;}
+  .sheet-foot{flex:0 0 auto;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:10px 16px 2px;}
+  .sheet-panel .ovx{top:9px;right:11px;}
   .title{font-family:Georgia,"Times New Roman",serif;font-size:40px;letter-spacing:3px;color:var(--gold);
     text-shadow:0 2px 14px rgba(217,185,106,.35),0 2px 4px #000;line-height:1.05;}
   .subtitle{font-size:13px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;}
@@ -135,7 +150,7 @@
     background:linear-gradient(var(--gold),#b6923f);border:none;box-shadow:0 6px 20px rgba(217,185,106,.3);}
   .cta:active{transform:scale(.96);}
 
-  #forkChoices{display:flex;flex-direction:column;gap:11px;width:min(88%,340px);}
+  #forkChoices{gap:11px;}
   .forkchoice{pointer-events:auto;display:flex;align-items:center;gap:11px;text-align:left;
     padding:12px 13px;border-radius:12px;cursor:pointer;color:var(--ink);
     background:linear-gradient(180deg,rgba(26,22,16,.96),rgba(10,9,7,.97));border:1px solid #463d2c;
@@ -147,8 +162,7 @@
   .fc-desc{font-size:11px;color:#a99e82;margin-top:2px;line-height:1.3;}
   .fc-tag{font-size:9px;color:#cdbf9a;background:rgba(0,0,0,.4);border:1px solid #3a3326;border-radius:5px;padding:3px 6px;letter-spacing:.4px;flex:0 0 auto;text-align:center;max-width:80px;}
 
-  #shopItems,#catalogItems,#soulItems,#gearList,#jukeItems{display:flex;flex-direction:column;gap:9px;width:min(90%,350px);max-height:54vh;overflow-y:auto;
-    touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+  /* shop/list bodies are the scrollable .sheet-body of their panels (see bottom-sheet rules) */
   .shopitem{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
     background:linear-gradient(180deg,rgba(26,22,16,.96),rgba(10,9,7,.97));border:1px solid #463d2c;text-align:left;}
   .shopitem.playing{border-color:#c9a8ff;box-shadow:0 0 14px rgba(140,111,212,.5);}
@@ -177,10 +191,6 @@
   .ev-cost{color:#d07f7f;font-weight:bold;}
 
   #townOv{justify-content:flex-end;padding-bottom:26px;background:linear-gradient(rgba(0,0,0,0) 40%,rgba(4,3,8,.82) 78%);backdrop-filter:none;-webkit-backdrop-filter:none;}
-  #catalogOv{justify-content:flex-end;padding-bottom:16px;gap:5px;background:linear-gradient(rgba(0,0,0,0) 55%,rgba(4,3,8,.6) 64%,rgba(4,3,8,.93) 76%);backdrop-filter:none;-webkit-backdrop-filter:none;}
-  #catalogItems{max-height:32vh;}
-  #catalogOv .title{font-size:20px!important;margin-bottom:0;}
-  #catalogOv .subtitle{font-size:11px!important;}
   #townHead{position:absolute;top:54px;left:0;right:0;text-align:center;}
   #townName{font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:var(--gold);text-shadow:0 2px 12px rgba(217,185,106,.4),0 2px 5px #000;}
   #townSub{font-size:11px;letter-spacing:3px;color:#a99b73;text-transform:uppercase;margin-top:3px;}
@@ -229,7 +239,7 @@
   #dlgBtns{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px;}
 
   #lootOv{gap:10px;}
-  #card{width:min(78%,300px);border-radius:14px;padding:18px 18px 16px;
+  #card{width:min(90%,300px);margin:0 auto;border-radius:14px;padding:18px 18px 16px;
     background:linear-gradient(180deg,rgba(28,24,18,.96),rgba(10,9,7,.98));
     border:2px solid var(--common);box-shadow:0 0 28px rgba(0,0,0,.7),0 0 26px rgba(154,154,154,.25);position:relative;}
   #cardrar{position:absolute;top:10px;right:14px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--common);}
@@ -293,18 +303,20 @@
   .lootbtn, .cta, .si-buy, #townSub, #evBody, #shopGold, #catalogGold, #townStats, #soulCount, #revealAct, #revealSub{
     font-size:14px !important; line-height:1.5 !important; font-style:normal !important; }
   .fc-name, .si-name, #cardname, #townName, #evTitle, #revealName, #dlgName{ font-size:21px !important; color:#d9b96a !important; }
-  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, .tbtn, #townSettings, #titleSettings, #catalogItems > div, #soulItems > div, #shopItems .shopitem{
+  #card, #dlgPanel, .forkchoice, .shopitem, .npcbtn, .tbtn, .sheet-panel, #townSettings, #titleSettings{
     border-radius:0 !important; box-shadow:none !important; background:#160f08 !important;
     border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
+  .krfont .sheet-head .title{ font-size:18px !important; margin:0 !important; }
+  .krfont .sheet-grab{ background:#4a4334 !important; }
   .cta, .lootbtn, .si-buy{
     border-radius:0 !important; box-shadow:none !important; background:#3a2a12 !important; color:#f0e6cc !important; text-shadow:1px 1px 0 #08070a !important;
     border:2px solid #08070a !important; border-top-color:#caa44a !important; border-left-color:#caa44a !important; border-right-color:#5a3a10 !important; border-bottom-color:#5a3a10 !important; }
   .cta{ background:#5a4216 !important; }
   .lootbtn.primary, .cta{ color:#fff4d8 !important; }
   #dlgPortrait{ border-radius:0 !important; border:2px solid #08070a !important; border-top-color:#4a4334 !important; border-left-color:#4a4334 !important; }
-  /* live-3D-backdrop overlays (town / shop interior / dialogue / fork): let the scene show THROUGH the pixel chrome */
-  #townOv .npcbtn, .krfont .tbtn, #catalogOv #catalogItems > div, #dlgPanel, #forkOv .forkchoice{ background:rgba(16,11,6,.56) !important; }
-  #townOv .cta, #catalogOv .si-buy{ background:rgba(48,34,16,.64) !important; }
+  /* live-3D-backdrop overlays (town hub / dialogue): let the scene show THROUGH the pixel chrome */
+  #townOv .npcbtn, .krfont .tbtn, #dlgPanel{ background:rgba(16,11,6,.56) !important; }
+  #townOv .cta{ background:rgba(48,34,16,.64) !important; }
   /* keep the town UI compact so the city breathes instead of a wall of buttons */
   #townOv .npcbtn{ padding:7px 5px !important; gap:2px !important; }
   .krfont .npcbtn .ni{ font-size:20px !important; }
@@ -409,36 +421,51 @@
   </div>
 
   <!-- Soul Shrine (meta-progression) -->
-  <div id="soulOv" class="overlay hidden">
-    <button class="ovx" id="xSoul" aria-label="Close">✕</button>
-    <div class="subtitle">Spend the souls of your fallen selves</div>
-    <div class="title" style="font-size:25px;">Soul Shrine</div>
-    <div id="soulCount" style="font-size:15px;color:#c9a8ff;">⟡ 0</div>
-    <div id="soulItems"></div>
-    <button id="leaveSoulBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+  <div id="soulOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <button class="ovx" id="xSoul" aria-label="Close">✕</button>
+      <div class="sheet-head">
+        <div class="subtitle">Spend the souls of your fallen selves</div>
+        <div class="title">Soul Shrine</div>
+        <div id="soulCount" style="font-size:15px;color:#c9a8ff;">⟡ 0</div>
+      </div>
+      <div id="soulItems" class="sheet-body"></div>
+      <div class="sheet-foot"><button id="leaveSoulBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button></div>
+    </div>
   </div>
 
   <!-- Jukebox — audition every track on demand -->
-  <div id="jukeboxOv" class="overlay hidden">
-    <button class="ovx" id="xJuke" aria-label="Close">✕</button>
-    <div class="subtitle">Songs from the cursed road</div>
-    <div class="title" style="font-size:25px;">Jukebox</div>
-    <div id="jukeNow" class="hint" style="margin-bottom:6px;">Tap a song to play it</div>
-    <div id="jukeItems"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
-      <button id="jukeStopBtn" class="cta" style="font-size:13px;padding:9px 22px;background:linear-gradient(#8a9aac,#4a5a6a);">■ STOP</button>
-      <button id="leaveJukeBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+  <div id="jukeboxOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <button class="ovx" id="xJuke" aria-label="Close">✕</button>
+      <div class="sheet-head">
+        <div class="subtitle">Songs from the cursed road</div>
+        <div class="title">Jukebox</div>
+        <div id="jukeNow" class="hint">Tap a song to play it</div>
+      </div>
+      <div id="jukeItems" class="sheet-body"></div>
+      <div class="sheet-foot">
+        <button id="jukeStopBtn" class="cta" style="font-size:13px;padding:9px 22px;background:linear-gradient(#8a9aac,#4a5a6a);">■ STOP</button>
+        <button id="leaveJukeBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+      </div>
     </div>
   </div>
 
   <!-- Equipped gear panel -->
-  <div id="gearOv" class="overlay hidden">
-    <button class="ovx" id="xGear" aria-label="Close">✕</button>
-    <div class="subtitle">What you carry into the dark</div>
-    <div class="title" style="font-size:25px;">Equipment</div>
-    <div id="gearStats" style="font-size:12px;color:#cdbf9a;letter-spacing:.3px;"></div>
-    <div id="gearList"></div>
-    <button id="leaveGearBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+  <div id="gearOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <button class="ovx" id="xGear" aria-label="Close">✕</button>
+      <div class="sheet-head">
+        <div class="subtitle">What you carry into the dark</div>
+        <div class="title">Equipment</div>
+        <div id="gearStats" style="font-size:12px;color:#cdbf9a;letter-spacing:.3px;"></div>
+      </div>
+      <div id="gearList" class="sheet-body"></div>
+      <div class="sheet-foot"><button id="leaveGearBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button></div>
+    </div>
   </div>
 
   <!-- Dialogue -->
@@ -454,54 +481,79 @@
   </div>
 
   <!-- Fork -->
-  <div id="forkOv" class="overlay hidden">
-    <div class="subtitle">The road forks</div>
-    <div class="title" style="font-size:25px;">Choose your path</div>
-    <div id="forkChoices"></div>
+  <div id="forkOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <div class="subtitle">The road forks</div>
+        <div class="title">Choose your path</div>
+      </div>
+      <div id="forkChoices" class="sheet-body"></div>
+    </div>
   </div>
 
   <!-- Road merchant -->
-  <div id="shopOv" class="overlay hidden">
-    <button class="ovx" id="xShop" aria-label="Close">✕</button>
-    <div class="subtitle">A hooded figure waits</div>
-    <div class="title" style="font-size:25px;">Wandering Merchant</div>
-    <div id="shopGold">◈0</div>
-    <div id="shopItems"></div>
-    <button id="leaveShopBtn" class="cta" style="font-size:14px;padding:10px 28px;">Leave</button>
+  <div id="shopOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <button class="ovx" id="xShop" aria-label="Close">✕</button>
+      <div class="sheet-head">
+        <div class="subtitle">A hooded figure waits</div>
+        <div class="title">Wandering Merchant</div>
+        <div id="shopGold">◈0</div>
+      </div>
+      <div id="shopItems" class="sheet-body"></div>
+      <div class="sheet-foot"><button id="leaveShopBtn" class="cta" style="font-size:14px;padding:10px 28px;">Leave</button></div>
+    </div>
   </div>
 
   <!-- Town shop catalog -->
-  <div id="catalogOv" class="overlay hidden">
-    <button class="ovx" id="xCatalog" aria-label="Close">✕</button>
-    <div class="subtitle" id="catalogSub">Wares</div>
-    <div class="title" id="catalogTitle" style="font-size:24px;">Blacksmith</div>
-    <div id="catalogGold">◈0</div>
-    <div id="catalogItems"></div>
-    <button id="leaveCatalogBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button>
+  <div id="catalogOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <button class="ovx" id="xCatalog" aria-label="Close">✕</button>
+      <div class="sheet-head">
+        <div class="subtitle" id="catalogSub">Wares</div>
+        <div class="title" id="catalogTitle">Blacksmith</div>
+        <div id="catalogGold">◈0</div>
+      </div>
+      <div id="catalogItems" class="sheet-body"></div>
+      <div class="sheet-foot"><button id="leaveCatalogBtn" class="cta" style="font-size:14px;padding:10px 28px;">Done</button></div>
+    </div>
   </div>
 
   <!-- Event -->
-  <div id="eventOv" class="overlay hidden">
-    <div id="evIcon">🔥</div>
-    <div id="evTitle">Shrine</div>
-    <div id="evBody" class="body"></div>
-    <div id="evBtns"></div>
+  <div id="eventOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <div id="evIcon">🔥</div>
+        <div id="evTitle">Shrine</div>
+      </div>
+      <div class="sheet-body"><div id="evBody" class="body"></div></div>
+      <div class="sheet-foot" id="evBtns"></div>
+    </div>
   </div>
 
   <!-- Loot -->
-  <div id="lootOv" class="overlay hidden">
-    <div class="subtitle">Spoils of the slain</div>
-    <div id="card">
-      <div id="cardrar">Common</div>
-      <div id="cardicon">⚔</div>
-      <div id="cardslot">Weapon</div>
-      <div id="cardname">Rusted Fang</div>
-      <div id="cardstats"></div>
-      <div id="cmpline"></div>
-    </div>
-    <div id="lootbtns">
-      <button id="sellBtn" class="lootbtn ghost">Sell <span id="selltag">◈12</span></button>
-      <button id="equipBtn" class="lootbtn primary">Equip</button>
+  <div id="lootOv" class="overlay sheet hidden">
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head"><div class="subtitle">Spoils of the slain</div></div>
+      <div class="sheet-body">
+        <div id="card">
+          <div id="cardrar">Common</div>
+          <div id="cardicon">⚔</div>
+          <div id="cardslot">Weapon</div>
+          <div id="cardname">Rusted Fang</div>
+          <div id="cardstats"></div>
+          <div id="cmpline"></div>
+        </div>
+      </div>
+      <div class="sheet-foot" id="lootbtns">
+        <button id="sellBtn" class="lootbtn ghost">Sell <span id="selltag">◈12</span></button>
+        <button id="equipBtn" class="lootbtn primary">Equip</button>
+      </div>
     </div>
   </div>
 
@@ -2097,6 +2149,9 @@ function openShopCatalog(type){
 }
 bindBtn($('leaveCatalogBtn'), leaveShop);
 bindBtn($('xCatalog'), leaveShop);
+// tap the dimmed area above a bottom-sheet to dismiss it (only sheets that have a ✕ close)
+document.querySelectorAll('.overlay.sheet').forEach(ov=>{ const x=ov.querySelector('.ovx'); if(!x) return;
+  ov.addEventListener('pointerdown', e=>{ if(e.target===ov){ e.preventDefault(); x.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true})); } }); });
 
 // ============================================================ biome-reveal cutscene
 const REVEAL_DUR=3.4;
