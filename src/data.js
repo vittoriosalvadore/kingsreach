@@ -18,10 +18,10 @@ export const BPRESETS = {
 
 // ---- permanent soul-shrine upgrades ----
 export const SOUL_UPG = [
-  {key:'hp',     icon:'❤', name:'Vitality',    desc:'+15 max health each run',            max:8, cost:l=>20+l*18},
-  {key:'atk',    icon:'⚔', name:'Might',        desc:'+2 attack each run',                 max:8, cost:l=>24+l*20},
-  {key:'potion', icon:'🧪', name:'Provisioner',  desc:'Begin each run with +1 healing draught', max:3, cost:l=>45+l*45},
-  {key:'gold',   icon:'◈', name:'Coffers',      desc:'Begin each run with +25 gold',       max:6, cost:l=>18+l*16},
+  {key:'hp',     icon:'heart', name:'Vitality',    desc:'+15 max health each run',            max:8, cost:l=>20+l*18},
+  {key:'atk',    icon:'sword', name:'Might',        desc:'+2 attack each run',                 max:8, cost:l=>24+l*20},
+  {key:'potion', icon:'flask', name:'Provisioner',  desc:'Begin each run with +1 healing draught', max:3, cost:l=>45+l*45},
+  {key:'gold',   icon:'coin', name:'Coffers',      desc:'Begin each run with +25 gold',       max:6, cost:l=>18+l*16},
 ];
 
 // ---- biomes (cycled by act) ----
